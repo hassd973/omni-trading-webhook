@@ -31,14 +31,16 @@ function signRequest(method, path, params = {}) {
   };
 }
 
-// ✅ BALANCE endpoint
+// ✅ BALANCE endpoint (no query param)
 app.get('/balance', async (req, res) => {
   const path = `/account/balances`;
   const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
     const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, { headers, params });
+    const response = await axios.get(`${BASE_URL}${path}`, {
+      headers
+    });
 
     res.status(200).json({
       accountId: process.env.ACCOUNT_ID,
@@ -50,14 +52,16 @@ app.get('/balance', async (req, res) => {
   }
 });
 
-// ✅ POSITIONS endpoint
+// ✅ POSITIONS endpoint (no query param)
 app.get('/positions', async (req, res) => {
   const path = `/positions`;
   const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
     const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, { headers, params });
+    const response = await axios.get(`${BASE_URL}${path}`, {
+      headers
+    });
 
     res.status(200).json({
       openPositions: response.data
