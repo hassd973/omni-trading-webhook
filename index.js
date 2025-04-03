@@ -2,12 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
-const app = express();
 
+const app = express();
 app.use(express.json());
 
 const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
+// Health check route for homepage
+app.get('/', (req, res) => {
+  res.send('Omni Webhook is live ✅');
+});
+
+// Sign request headers
 function signRequest(method, path, params = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
@@ -25,10 +31,11 @@ function signRequest(method, path, params = {}) {
   };
 }
 
+// Create order on Omni
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const params = {
-    symbol: symbol,
+    symbol,
     side: side.toUpperCase(),
     type: type.toUpperCase(),
     size: parseFloat(size),
@@ -41,6 +48,7 @@ async function createOrder(symbol, side, type, size, price) {
   };
 
   const headers = signRequest('POST', path, params);
+  console.log('Sending order request:', { params });
 
   try {
     const response = await axios.post(`${BASE_URL}${path}`, params, { headers });
@@ -51,6 +59,7 @@ async function createOrder(symbol, side, type, size, price) {
   }
 }
 
+// Webhook route
 app.post('/webhook', async (req, res) => {
   try {
     const { market, order, size, price } = req.body;
@@ -58,13 +67,7 @@ app.post('/webhook', async (req, res) => {
 
     const orderType = price ? 'LIMIT' : 'MARKET';
 
-    const result = await createOrder(
-      market,
-      order,
-      orderType,
-      size,
-      price
-    );
+    const result = await createOrder(market, order, orderType, size, price);
 
     console.log('Order placed:', result);
     res.status(200).send('Order placed successfully');
@@ -74,5 +77,8 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
