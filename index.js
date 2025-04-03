@@ -8,12 +8,11 @@ app.use(express.json());
 
 const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
-// Homepage health check
 app.get('/', (req, res) => {
   res.send('Omni Webhook is live ✅');
 });
 
-// Sign request for Omni API
+// 🔐 Sign Omni API requests
 function signRequest(method, path, params = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
@@ -31,7 +30,50 @@ function signRequest(method, path, params = {}) {
   };
 }
 
-// Create order
+// ✅ Omni Balance route
+app.get('/balance', async (req, res) => {
+  const path = `/account/balances`;
+  const params = { accountId: process.env.ACCOUNT_ID };
+
+  try {
+    const headers = signRequest('GET', path, params);
+    const response = await axios.get(`${BASE_URL}${path}`, {
+      headers,
+      params
+    });
+
+    res.status(200).json({
+      accountId: process.env.ACCOUNT_ID,
+      balances: response.data
+    });
+  } catch (err) {
+    console.error('Balance error:', err.message);
+    res.status(500).send(`Failed to fetch balance: ${err.message}`);
+  }
+});
+
+// ✅ Omni Positions route
+app.get('/positions', async (req, res) => {
+  const path = `/positions`;
+  const params = { accountId: process.env.ACCOUNT_ID };
+
+  try {
+    const headers = signRequest('GET', path, params);
+    const response = await axios.get(`${BASE_URL}${path}`, {
+      headers,
+      params
+    });
+
+    res.status(200).json({
+      openPositions: response.data
+    });
+  } catch (err) {
+    console.error('Positions error:', err.message);
+    res.status(500).send(`Failed to fetch positions: ${err.message}`);
+  }
+});
+
+// 🧊 Create Order
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const params = {
@@ -48,43 +90,36 @@ async function createOrder(symbol, side, type, size, price) {
   };
 
   const headers = signRequest('POST', path, params);
-  console.log('📦 Sending order with params:', params);
+  console.log('Sending order request:', { params });
 
   try {
     const response = await axios.post(`${BASE_URL}${path}`, params, { headers });
     return response.data;
   } catch (error) {
-    console.error('❌ Order error:', error.response?.data || error.message);
+    console.error('Order error:', error.response?.data || error.message);
     throw new Error(error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
   }
 }
 
-// Webhook endpoint
+// 🧩 Webhook endpoint for TradingView
 app.post('/webhook', async (req, res) => {
-  console.log('\n--- 🔔 New Webhook Triggered ---');
-  console.log('📩 Raw Payload:', JSON.stringify(req.body, null, 2));
-
   try {
     const { market, order, size, price } = req.body;
-
-    if (!market || !order || !size) {
-      console.warn('⚠️ Missing required fields (market, order, or size)');
-      return res.status(400).send('Missing required fields.');
-    }
+    console.log('Received webhook:', req.body);
 
     const orderType = price ? 'LIMIT' : 'MARKET';
+
     const result = await createOrder(market, order, orderType, size, price);
 
-    console.log('✅ Order placed successfully:', result);
+    console.log('Order placed:', result);
     res.status(200).send('Order placed successfully');
   } catch (error) {
-    console.error('❌ Webhook processing failed:', error.message);
+    console.error('Webhook error:', error.message);
     res.status(500).send(`Order failed: ${error.message}`);
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
