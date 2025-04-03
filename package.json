@@ -1,20 +1,14 @@
 {
   "name": "omni-trading-webhook",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "apexpro-connector-node": "^0.0.7",
-    "axios": "^1.8.4",
-    "big.js": "^6.2.2",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0"
+    "axios": "^1.6.7",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
   }
 }
