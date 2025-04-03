@@ -1,10 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const axios = require('axios');
 const crypto = require('crypto');
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
@@ -12,7 +14,6 @@ app.get('/', (req, res) => {
   res.send('Omni Webhook is live ✅');
 });
 
-// 🔐 Sign Omni API requests
 function signRequest(method, path, params = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
@@ -30,17 +31,14 @@ function signRequest(method, path, params = {}) {
   };
 }
 
-// ✅ Omni Balance route
+// ✅ BALANCE endpoint
 app.get('/balance', async (req, res) => {
   const path = `/account/balances`;
   const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
     const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, {
-      headers,
-      params
-    });
+    const response = await axios.get(`${BASE_URL}${path}`, { headers, params });
 
     res.status(200).json({
       accountId: process.env.ACCOUNT_ID,
@@ -52,17 +50,14 @@ app.get('/balance', async (req, res) => {
   }
 });
 
-// ✅ Omni Positions route
+// ✅ POSITIONS endpoint
 app.get('/positions', async (req, res) => {
   const path = `/positions`;
   const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
     const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, {
-      headers,
-      params
-    });
+    const response = await axios.get(`${BASE_URL}${path}`, { headers, params });
 
     res.status(200).json({
       openPositions: response.data
@@ -73,7 +68,7 @@ app.get('/positions', async (req, res) => {
   }
 });
 
-// 🧊 Create Order
+// ✅ CREATE ORDER
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const params = {
@@ -101,14 +96,13 @@ async function createOrder(symbol, side, type, size, price) {
   }
 }
 
-// 🧩 Webhook endpoint for TradingView
+// ✅ WEBHOOK endpoint
 app.post('/webhook', async (req, res) => {
   try {
     const { market, order, size, price } = req.body;
     console.log('Received webhook:', req.body);
 
     const orderType = price ? 'LIMIT' : 'MARKET';
-
     const result = await createOrder(market, order, orderType, size, price);
 
     console.log('Order placed:', result);
