@@ -14,9 +14,9 @@ app.get('/', (req, res) => {
   res.send('Omni Webhook is live ✅');
 });
 
-function signRequest(method, path, params = {}) {
+function signRequest(method, path, body = {}) {
   const timestamp = Date.now().toString();
-  const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
+  const message = `${method}${path}${timestamp}${JSON.stringify(body)}`;
   const signature = crypto
     .createHmac('sha256', process.env.SECRET)
     .update(message)
@@ -31,68 +31,55 @@ function signRequest(method, path, params = {}) {
   };
 }
 
-// ✅ BALANCE endpoint (no query param)
+// ✅ BALANCE endpoint
 app.get('/balance', async (req, res) => {
   const path = `/account/balances`;
-  const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
-    const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, {
-      headers
-    });
+    const headers = signRequest('GET', path);
+    const response = await axios.get(`${BASE_URL}${path}`, { headers });
 
-    res.status(200).json({
-      accountId: process.env.ACCOUNT_ID,
-      balances: response.data
-    });
+    res.status(200).json(response.data);
   } catch (err) {
-    console.error('Balance error:', err.message);
-    res.status(500).send(`Failed to fetch balance: ${err.message}`);
+    console.error('Balance error:', err.response?.data || err.message);
+    res.status(500).send(`Balance error: ${err.message}`);
   }
 });
 
-// ✅ POSITIONS endpoint (no query param)
+// ✅ POSITIONS endpoint
 app.get('/positions', async (req, res) => {
   const path = `/positions`;
-  const params = { accountId: process.env.ACCOUNT_ID };
 
   try {
-    const headers = signRequest('GET', path, params);
-    const response = await axios.get(`${BASE_URL}${path}`, {
-      headers
-    });
+    const headers = signRequest('GET', path);
+    const response = await axios.get(`${BASE_URL}${path}`, { headers });
 
-    res.status(200).json({
-      openPositions: response.data
-    });
+    res.status(200).json(response.data);
   } catch (err) {
-    console.error('Positions error:', err.message);
-    res.status(500).send(`Failed to fetch positions: ${err.message}`);
+    console.error('Positions error:', err.response?.data || err.message);
+    res.status(500).send(`Positions error: ${err.message}`);
   }
 });
 
 // ✅ CREATE ORDER
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
-  const params = {
+  const body = {
     symbol,
     side: side.toUpperCase(),
     type: type.toUpperCase(),
     size: parseFloat(size),
     ...(price && { price: parseFloat(price) }),
     timeInForce: 'GTC',
-    accountId: process.env.ACCOUNT_ID,
-    l2Key: process.env.L2KEY,
     clientOrderId: `webhook-${Date.now()}`,
     timestamp: Date.now()
   };
 
-  const headers = signRequest('POST', path, params);
-  console.log('Sending order request:', { params });
+  const headers = signRequest('POST', path, body);
+  console.log('Sending order:', body);
 
   try {
-    const response = await axios.post(`${BASE_URL}${path}`, params, { headers });
+    const response = await axios.post(`${BASE_URL}${path}`, body, { headers });
     return response.data;
   } catch (error) {
     console.error('Order error:', error.response?.data || error.message);
