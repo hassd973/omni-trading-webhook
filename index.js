@@ -8,12 +8,12 @@ app.use(express.json());
 
 const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
-// Health check route for homepage
+// Homepage health check
 app.get('/', (req, res) => {
   res.send('Omni Webhook is live ✅');
 });
 
-// Sign request headers
+// Sign request for Omni API
 function signRequest(method, path, params = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
@@ -31,7 +31,7 @@ function signRequest(method, path, params = {}) {
   };
 }
 
-// Create order on Omni
+// Create order
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const params = {
@@ -48,37 +48,43 @@ async function createOrder(symbol, side, type, size, price) {
   };
 
   const headers = signRequest('POST', path, params);
-  console.log('Sending order request:', { params });
+  console.log('📦 Sending order with params:', params);
 
   try {
     const response = await axios.post(`${BASE_URL}${path}`, params, { headers });
     return response.data;
   } catch (error) {
-    console.error('Order error:', error.response?.data || error.message);
+    console.error('❌ Order error:', error.response?.data || error.message);
     throw new Error(error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
   }
 }
 
-// Webhook route
+// Webhook endpoint
 app.post('/webhook', async (req, res) => {
+  console.log('\n--- 🔔 New Webhook Triggered ---');
+  console.log('📩 Raw Payload:', JSON.stringify(req.body, null, 2));
+
   try {
     const { market, order, size, price } = req.body;
-    console.log('Received webhook:', req.body);
+
+    if (!market || !order || !size) {
+      console.warn('⚠️ Missing required fields (market, order, or size)');
+      return res.status(400).send('Missing required fields.');
+    }
 
     const orderType = price ? 'LIMIT' : 'MARKET';
-
     const result = await createOrder(market, order, orderType, size, price);
 
-    console.log('Order placed:', result);
+    console.log('✅ Order placed successfully:', result);
     res.status(200).send('Order placed successfully');
   } catch (error) {
-    console.error('Webhook error:', error.message);
+    console.error('❌ Webhook processing failed:', error.message);
     res.status(500).send(`Order failed: ${error.message}`);
   }
 });
 
-// Start the server
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
