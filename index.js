@@ -32,7 +32,7 @@ console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
 console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-const APEX_BASE_URL = 'https://omni.apex.exchange/api'; // Adjusted base URL
+const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3'; // Fixed base URL with /v3
 
 // Signature generator (v3 auth)
 function generateSignature(method, endpoint, expires, body = '') {
@@ -43,7 +43,7 @@ function generateSignature(method, endpoint, expires, body = '') {
 // Authenticated request
 async function privateRequest(method, path, data = {}) {
   const timestamp = Date.now().toString();
-  const endpoint = `/v3${path}`; // Ensure v3 prefix
+  const endpoint = path; // No extra /v3 prefix here
   const bodyStr = method === 'GET' ? '' : JSON.stringify(data);
   const signature = generateSignature(method, endpoint, timestamp, bodyStr);
 
@@ -106,7 +106,7 @@ app.post('/webhook', async (req, res) => {
   const clientId = uuidv4();
 
   const payload = {
-    symbol: symbol.replace('USD', '-USD'), // e.g., BTCUSD -> BTC-USD
+    symbol: symbol.replace('USD', '-USD'),
     orderType: price ? 'LIMIT' : 'MARKET',
     side: side.toUpperCase(),
     price: price ? parseFloat(price) : undefined,
@@ -115,7 +115,7 @@ app.post('/webhook', async (req, res) => {
     clientOrderId: clientId,
     accountId: ACCOUNT_ID,
     l2Key: L2KEY,
-    maxFeeRate: 0.0005, // Java-inspired default
+    maxFeeRate: 0.0005,
     reduceOnly: false
   };
 
