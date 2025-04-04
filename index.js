@@ -32,9 +32,9 @@ console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
 console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3'; // Correct v3 base URL
+const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3';
 
-// Signature generator (aligned with Java connector)
+// Signature generator
 function generateSignature(method, endpoint, timestamp, body = '') {
   const payload = `${method}${endpoint}${timestamp}${body}`;
   return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
@@ -43,7 +43,7 @@ function generateSignature(method, endpoint, timestamp, body = '') {
 // Authenticated request
 async function privateRequest(method, path, data = {}) {
   const timestamp = Date.now().toString();
-  const endpoint = path.startsWith('/') ? path : `/${path}`; // Ensure leading slash
+  const endpoint = path.startsWith('/') ? path : `/${path}`;
   const bodyStr = method === 'GET' ? '' : JSON.stringify(data);
   const signature = generateSignature(method, endpoint, timestamp, bodyStr);
 
@@ -69,8 +69,16 @@ async function privateRequest(method, path, data = {}) {
   }
 }
 
-// 🚀 Startup checks
+// Load exchange config (Java-inspired)
+async function loadExchangeInfo() {
+  const config = await privateRequest('GET', '/configs');
+  console.log('✅ Exchange Config:', config);
+  return config;
+}
+
+// Startup checks with onboarding
 (async () => {
+  await loadExchangeInfo(); // Load config first
   const time = await privateRequest('GET', '/time');
   console.log('✅ Time Check:', time);
 
@@ -81,17 +89,17 @@ async function privateRequest(method, path, data = {}) {
   console.log('✅ Balance:', balance);
 })();
 
-// 🧠 In-memory state
+// In-memory state
 let latestPositions = null;
 let latestBalance = null;
 
-// 🔁 Auto-refresh every 30s
+// Auto-refresh every 30s
 setInterval(async () => {
   latestPositions = await privateRequest('GET', '/account/positions');
   latestBalance = await privateRequest('GET', '/account/balance');
 }, 30000);
 
-// 📡 REST API for frontend
+// REST API for frontend
 app.get('/api/positions', (req, res) => {
   res.json({ positions: latestPositions });
 });
@@ -100,13 +108,13 @@ app.get('/api/balance', (req, res) => {
   res.json({ balance: latestBalance });
 });
 
-// ✅ Webhook for trading (Java-inspired)
+// Webhook for trading
 app.post('/webhook', async (req, res) => {
   const { side, symbol, size, price } = req.body;
   const clientId = uuidv4();
 
   const payload = {
-    symbol: symbol.replace('USD', '-USD'), // e.g., BTCUSD -> BTC-USD
+    symbol: symbol.replace('USD', '-USD'),
     orderType: price ? 'LIMIT' : 'MARKET',
     side: side.toUpperCase(),
     price: price ? parseFloat(price) : undefined,
@@ -115,8 +123,9 @@ app.post('/webhook', async (req, res) => {
     clientOrderId: clientId,
     accountId: ACCOUNT_ID,
     l2Key: L2KEY,
-    maxFeeRate: 0.0005, // From Java example
+    maxFeeRate: 0.0005,
     reduceOnly: false,
+    chainId: CHAIN_ID || '42161', // Default Arbitrum chain ID
     timestamp: Date.now()
   };
 
