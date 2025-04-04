@@ -10,22 +10,21 @@ app.use(cors());
 
 const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
-app.get('/', (req, res) => {
-  res.send('Omni Webhook is live ✅');
-});
+// ✅ Startup logs (optional in dev)
+console.log('🔑 API_KEY:', process.env.API_KEY ? '✔️' : '❌ Missing');
+console.log('🔐 SECRET:', process.env.SECRET ? '✔️' : '❌ Missing');
+console.log('🔒 PASSPHRASE:', process.env.PASSPHRASE ? '✔️' : '❌ Missing');
 
-// ✅ Test route to check ENV variables
-app.get('/test-env', (req, res) => {
-  res.json({
-    API_KEY: process.env.API_KEY ? '✅ Loaded' : '❌ Missing',
-    SECRET: process.env.SECRET ? '✅ Loaded' : '❌ Missing',
-    PASSPHRASE: process.env.PASSPHRASE ? '✅ Loaded' : '❌ Missing',
-    ACCOUNT_ID: process.env.ACCOUNT_ID ? '✅ Loaded' : '⚠️ Not used in v3',
-    OMNI_SEED: process.env.OMNI_SEED ? '✅ Loaded' : '⚠️ Not used',
-    L2KEY: process.env.L2KEY ? '✅ Loaded' : '⚠️ Not used',
-    PORT: process.env.PORT || '🔁 Defaulting to 10000'
-  });
-});
+// ✅ Ping API on startup
+async function testApi() {
+  try {
+    const res = await axios.get(`${BASE_URL}/time`);
+    console.log('✅ Omni API live:', res.data);
+  } catch (err) {
+    console.error('❌ API test failed:', err.message);
+  }
+}
+testApi();
 
 // ✅ Signature helper
 function signRequest(method, path, body = {}) {
@@ -45,14 +44,12 @@ function signRequest(method, path, body = {}) {
   };
 }
 
-// ✅ BALANCE endpoint (no query param, Omni V3)
+// ✅ /balance route (V3 correct)
 app.get('/balance', async (req, res) => {
   const path = `/account/balances`;
-
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
-
     res.status(200).json(response.data);
   } catch (err) {
     console.error('Balance error:', err.response?.data || err.message);
@@ -60,14 +57,12 @@ app.get('/balance', async (req, res) => {
   }
 });
 
-// ✅ POSITIONS endpoint
+// ✅ /positions route (V3 correct)
 app.get('/positions', async (req, res) => {
   const path = `/positions`;
-
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
-
     res.status(200).json(response.data);
   } catch (err) {
     console.error('Positions error:', err.response?.data || err.message);
@@ -75,11 +70,11 @@ app.get('/positions', async (req, res) => {
   }
 });
 
-// ✅ ORDER creator
+// ✅ Order logic (cleaned)
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const body = {
-    symbol,
+    symbol, // assume it's correct format already like BTC-USDT
     side: side.toUpperCase(),
     type: type.toUpperCase(),
     size: parseFloat(size),
@@ -90,35 +85,40 @@ async function createOrder(symbol, side, type, size, price) {
   };
 
   const headers = signRequest('POST', path, body);
-  console.log('Sending order:', body);
+  console.log('📦 Sending order:', body);
 
   try {
     const response = await axios.post(`${BASE_URL}${path}`, body, { headers });
     return response.data;
-  } catch (error) {
-    console.error('Order error:', error.response?.data || error.message);
-    throw new Error(error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
+  } catch (err) {
+    console.error('❌ Order error:', err.response?.data || err.message);
+    throw new Error(err.response ? JSON.stringify(err.response.data, null, 2) : err.message);
   }
 }
 
-// ✅ WEBHOOK trigger
+// ✅ Webhook receiver
 app.post('/webhook', async (req, res) => {
   try {
     const { market, order, size, price } = req.body;
-    console.log('Webhook received:', req.body);
+    console.log('📩 Webhook received:', req.body);
 
     const orderType = price ? 'LIMIT' : 'MARKET';
     const result = await createOrder(market, order, orderType, size, price);
 
-    console.log('Order placed:', result);
+    console.log('✅ Order placed:', result);
     res.status(200).send('Order placed successfully');
-  } catch (error) {
-    console.error('Webhook error:', error.message);
-    res.status(500).send(`Order failed: ${error.message}`);
+  } catch (err) {
+    console.error('❌ Webhook error:', err.message);
+    res.status(500).send(`Order failed: ${err.message}`);
   }
+});
+
+// Optional health check
+app.get('/', (req, res) => {
+  res.send('🚀 ICE KING Webhook Server is live');
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🧊 ICE KING running on port ${PORT}`);
 });
