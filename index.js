@@ -10,12 +10,12 @@ app.use(cors());
 
 const BASE_URL = 'https://omni.apex.exchange';
 
-// ✅ Startup logs
+// ✅ Log key setup
 console.log('🔑 API_KEY:', process.env.API_KEY ? '✔️' : '❌ Missing');
 console.log('🔐 SECRET:', process.env.SECRET ? '✔️' : '❌ Missing');
 console.log('🔒 PASSPHRASE:', process.env.PASSPHRASE ? '✔️' : '❌ Missing');
 
-// ✅ Ping API on launch
+// ✅ Test connectivity
 async function testApi() {
   try {
     const res = await axios.get(`${BASE_URL}/api/v3/time`);
@@ -26,7 +26,7 @@ async function testApi() {
 }
 testApi();
 
-// ✅ Signature function
+// ✅ Sign requests
 function signRequest(method, path, body = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(body)}`;
@@ -46,7 +46,7 @@ function signRequest(method, path, body = {}) {
 
 // ✅ GET /balance
 app.get('/balance', async (req, res) => {
-  const path = `/v3/private/account/balances`;
+  const path = `/api/v3/private/account/balances`;
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
@@ -59,7 +59,7 @@ app.get('/balance', async (req, res) => {
 
 // ✅ GET /positions
 app.get('/positions', async (req, res) => {
-  const path = `/v3/private/position/open`;
+  const path = `/api/v3/private/position/open`;
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
@@ -113,7 +113,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// ✅ Home test
+// ✅ Root route
 app.get('/', (req, res) => {
   res.send('🧊 ICE KING Webhook is live');
 });
