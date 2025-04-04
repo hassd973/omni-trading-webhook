@@ -14,6 +14,20 @@ app.get('/', (req, res) => {
   res.send('Omni Webhook is live ✅');
 });
 
+// ✅ Test route to check ENV variables
+app.get('/test-env', (req, res) => {
+  res.json({
+    API_KEY: process.env.API_KEY ? '✅ Loaded' : '❌ Missing',
+    SECRET: process.env.SECRET ? '✅ Loaded' : '❌ Missing',
+    PASSPHRASE: process.env.PASSPHRASE ? '✅ Loaded' : '❌ Missing',
+    ACCOUNT_ID: process.env.ACCOUNT_ID ? '✅ Loaded' : '⚠️ Not used in v3',
+    OMNI_SEED: process.env.OMNI_SEED ? '✅ Loaded' : '⚠️ Not used',
+    L2KEY: process.env.L2KEY ? '✅ Loaded' : '⚠️ Not used',
+    PORT: process.env.PORT || '🔁 Defaulting to 10000'
+  });
+});
+
+// ✅ Signature helper
 function signRequest(method, path, body = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(body)}`;
@@ -31,7 +45,7 @@ function signRequest(method, path, body = {}) {
   };
 }
 
-// ✅ BALANCE endpoint
+// ✅ BALANCE endpoint (no query param, Omni V3)
 app.get('/balance', async (req, res) => {
   const path = `/account/balances`;
 
@@ -61,7 +75,7 @@ app.get('/positions', async (req, res) => {
   }
 });
 
-// ✅ CREATE ORDER
+// ✅ ORDER creator
 async function createOrder(symbol, side, type, size, price) {
   const path = '/order';
   const body = {
@@ -87,11 +101,11 @@ async function createOrder(symbol, side, type, size, price) {
   }
 }
 
-// ✅ WEBHOOK endpoint
+// ✅ WEBHOOK trigger
 app.post('/webhook', async (req, res) => {
   try {
     const { market, order, size, price } = req.body;
-    console.log('Received webhook:', req.body);
+    console.log('Webhook received:', req.body);
 
     const orderType = price ? 'LIMIT' : 'MARKET';
     const result = await createOrder(market, order, orderType, size, price);
