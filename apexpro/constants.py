@@ -1,67 +1,66 @@
-# ------------ API URLs ------------
-APEX_HTTP_MAIN = 'https://pro.apex.exchange'
-APEX_HTTP_TEST = 'https://testnet.pro.apex.exchange'
-APEX_WS_MAIN = 'wss://quote.pro.apex.exchange'
-APEX_WS_TEST = 'wss://quote-qa.pro.apex.exchange'
+"""Constants related to creating hashes of Starkware objects."""
 
-APEX_OMNI_HTTP_MAIN = 'https://omni.apex.exchange'
-APEX_OMNI_HTTP_TEST = 'https://qa.omni.apex.exchange'
+ONE_HOUR_IN_SECONDS = 60 * 60
+ORDER_SIGNATURE_EXPIRATION_BUFFER_HOURS = 24 * 7 *4  # 28 days.
 
-APEX_OMNI_WS_MAIN = 'wss://quote.omni.apex.exchange'
-APEX_OMNI_WS_TEST = 'wss://qa-quote.omni.apex.exchange'
+TRANSFER_PREFIX = 4
+TRANSFER_PADDING_BITS = 81
+CONDITIONAL_TRANSFER_PADDING_BITS = 81
+CONDITIONAL_TRANSFER_PREFIX = 5
+ORDER_PREFIX = 3
+ORDER_PADDING_BITS = 17
+WITHDRAWAL_PADDING_BITS = 49
+WITHDRAWAL_PREFIX = 6
+WITHDRAWAL_TO_ADDRESS_PREFIX = 7
 
-URL_SUFFIX = "/api"
+# Note: Fees are not supported for conditional transfers or transfers.
+TRANSFER_FEE_ASSET_ID = 0
+TRANSFER_MAX_AMOUNT_FEE = 0
 
-# ------------ register_env_id ------------
-REGISTER_ENVID_MAIN = 1
-REGISTER_ENVID_TEST = 5
+CONDITIONAL_TRANSFER_FEE_ASSET_ID = 0
+CONDITIONAL_TRANSFER_MAX_AMOUNT_FEE = 0
 
-# ------------ network_id ------------
-NETWORKID_MAIN = 1
-NETWORKID_TEST = 11155111
-
-NETWORKID_OMNI_MAIN_ARB = 9
-NETWORKID_OMNI_TEST_BNB = 3
-NETWORKID_OMNI_TEST_BASE = 11
-
-# ------------ Signature Types ------------
-SIGNATURE_TYPE_NO_PREPEND = 0
-SIGNATURE_TYPE_DECIMAL = 1
-SIGNATURE_TYPE_HEXADECIMAL = 2
-SIGNATURE_TYPE_PERSONAL = 3
-
-
-# ------------ Order Side ------------
-ORDER_SIDE_BUY = 'BUY'
-ORDER_SIDE_SELL = 'SELL'
-
-
-# ------------ Assets ------------
-ASSET_USDC = 'USDC'
-ASSET_BTC = 'BTC'
-ASSET_ETH = 'ETH'
-ASSET_LINK = 'LINK'
-ASSET_AAVE = 'AAVE'
-ASSET_DOGE = 'DOGE'
-ASSET_MATIC = 'MATIC'
-COLLATERAL_ASSET = ASSET_USDC
-
-ASSET_RESOLUTION = {
-    ASSET_USDC: '1e6',
+TRANSFER_FIELD_BIT_LENGTHS = {
+    "asset_id": 250,
+    "receiver_public_key": 251,
+    "position_id": 64,
+    "quantums_amount": 64,
+    "nonce": 32,
+    "expiration_epoch_hours": 32,
 }
 
-# ------------ Ethereum Transactions ------------
-DEFAULT_GAS_AMOUNT = 250000
-DEFAULT_GAS_MULTIPLIER = 1.5
-DEFAULT_GAS_PRICE = 4000000000
-DEFAULT_GAS_PRICE_ADDITION = 3
-MAX_SOLIDITY_UINT = 115792089237316195423570985008687907853269984665640564039457584007913129639935  # noqa: E501
+CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS = {
+    "asset_id": 250,
+    "receiver_public_key": 251,
+    "position_id": 64,
+    "condition": 251,
+    "quantums_amount": 64,
+    "nonce": 32,
+    "expiration_epoch_hours": 32,
+}
 
+ORDER_FIELD_BIT_LENGTHS = {
+    "asset_id_synthetic": 128,
+    "asset_id_collateral": 250,
+    "asset_id_fee": 250,
+    "quantums_amount": 64,
+    "nonce": 32,
+    "position_id": 64,
+    "expiration_epoch_hours": 32,
+}
 
-COLLATERAL_TOKEN_DECIMALS = 6
+WITHDRAWAL_FIELD_BIT_LENGTHS = {
+    "asset_id": 250,
+    "position_id": 64,
+    "nonce": 32,
+    "quantums_amount": 64,
+    "expiration_epoch_hours": 32,
+    "eth_address": 160,
+}
 
-# ------------ Off-Chain Ethereum-Signed Actions ------------
-OFF_CHAIN_ONBOARDING_ACTION = 'ApeX Onboarding' # action:ApeX Onboarding  onlySignOn:https://pro.apex.exchange nonce:1188491033265307648
-OFF_CHAIN_KEY_DERIVATION_ACTION = 'L2 Key' #{"name": "ApeX","version": "1.0","envId": 1,"action": "L2 Key","onlySignOn": "https://pro.apex.exchange"}
-
-
+ORACLE_PRICE_FIELD_BIT_LENGTHS = {
+    "asset_name": 128,
+    "oracle_name": 40,
+    "price": 120,
+    "timestamp_epoch_seconds": 32,
+}
