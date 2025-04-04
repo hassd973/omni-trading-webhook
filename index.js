@@ -8,17 +8,17 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const BASE_URL = 'https://omni.apex.exchange/api/v3';
+const BASE_URL = 'https://omni.apex.exchange';
 
-// ✅ Startup logs (optional in dev)
+// ✅ Startup logs
 console.log('🔑 API_KEY:', process.env.API_KEY ? '✔️' : '❌ Missing');
 console.log('🔐 SECRET:', process.env.SECRET ? '✔️' : '❌ Missing');
 console.log('🔒 PASSPHRASE:', process.env.PASSPHRASE ? '✔️' : '❌ Missing');
 
-// ✅ Ping API on startup
+// ✅ Ping API on launch
 async function testApi() {
   try {
-    const res = await axios.get(`${BASE_URL}/time`);
+    const res = await axios.get(`${BASE_URL}/api/v3/time`);
     console.log('✅ Omni API live:', res.data);
   } catch (err) {
     console.error('❌ API test failed:', err.message);
@@ -26,7 +26,7 @@ async function testApi() {
 }
 testApi();
 
-// ✅ Signature helper
+// ✅ Signature function
 function signRequest(method, path, body = {}) {
   const timestamp = Date.now().toString();
   const message = `${method}${path}${timestamp}${JSON.stringify(body)}`;
@@ -44,9 +44,9 @@ function signRequest(method, path, body = {}) {
   };
 }
 
-// ✅ /balance route (V3 correct)
+// ✅ GET /balance
 app.get('/balance', async (req, res) => {
-  const path = `/account/balances`;
+  const path = `/v3/private/account/balances`;
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
@@ -57,9 +57,9 @@ app.get('/balance', async (req, res) => {
   }
 });
 
-// ✅ /positions route (V3 correct)
+// ✅ GET /positions
 app.get('/positions', async (req, res) => {
-  const path = `/positions`;
+  const path = `/v3/private/position/open`;
   try {
     const headers = signRequest('GET', path);
     const response = await axios.get(`${BASE_URL}${path}`, { headers });
@@ -70,11 +70,11 @@ app.get('/positions', async (req, res) => {
   }
 });
 
-// ✅ Order logic (cleaned)
+// ✅ Create order
 async function createOrder(symbol, side, type, size, price) {
-  const path = '/order';
+  const path = '/api/v3/order';
   const body = {
-    symbol, // assume it's correct format already like BTC-USDT
+    symbol,
     side: side.toUpperCase(),
     type: type.toUpperCase(),
     size: parseFloat(size),
@@ -85,7 +85,7 @@ async function createOrder(symbol, side, type, size, price) {
   };
 
   const headers = signRequest('POST', path, body);
-  console.log('📦 Sending order:', body);
+  console.log('📦 Placing order:', body);
 
   try {
     const response = await axios.post(`${BASE_URL}${path}`, body, { headers });
@@ -96,7 +96,7 @@ async function createOrder(symbol, side, type, size, price) {
   }
 }
 
-// ✅ Webhook receiver
+// ✅ POST /webhook
 app.post('/webhook', async (req, res) => {
   try {
     const { market, order, size, price } = req.body;
@@ -113,9 +113,9 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Optional health check
+// ✅ Home test
 app.get('/', (req, res) => {
-  res.send('🚀 ICE KING Webhook Server is live');
+  res.send('🧊 ICE KING Webhook is live');
 });
 
 const PORT = process.env.PORT || 10000;
