@@ -8,10 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
-
 app.use(bodyParser.json());
 
-// Load env vars
 const {
   API_KEY,
   SECRET,
@@ -20,27 +18,25 @@ const {
   ACCOUNT_ID,
   OMNI_SEED,
   L2KEY,
-  CHAIN_ID
+  CHAIN_ID = '42161'
 } = process.env;
 
-console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
+console.log(`🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
 console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
 console.log(`📡 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
 console.log(`🔑 ETH_PRIVATE_KEY: ${ETH_PRIVATE_KEY ? '✔️' : '❌'}`);
 console.log(`📡 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
 console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
-console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
+console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
 
-const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3';
+const BASE_URL = 'https://omni.apex.exchange/api/v3';
 
-// Signature generator
 function generateSignature(method, endpoint, timestamp, body = '') {
   const payload = `${method}${endpoint}${timestamp}${body}`;
   return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
 }
 
-// Authenticated request
 async function privateRequest(method, path, data = {}) {
   const timestamp = Date.now().toString();
   const endpoint = path.startsWith('/') ? path : `/${path}`;
@@ -58,7 +54,7 @@ async function privateRequest(method, path, data = {}) {
   try {
     const res = await axios({
       method,
-      url: `${APEX_BASE_URL}${endpoint}`,
+      url: `${BASE_URL}${endpoint}`,
       data: method === 'POST' ? data : undefined,
       headers
     });
@@ -69,69 +65,84 @@ async function privateRequest(method, path, data = {}) {
   }
 }
 
-// Load exchange config (Java-inspired)
-async function loadExchangeInfo() {
-  const config = await privateRequest('GET', '/configs');
-  console.log('✅ Exchange Config:', config);
-  return config;
+// 🧬 Onboarding to Apex V3
+async function onboardUser() {
+  const payload = {
+    ethPrivateKey: ETH_PRIVATE_KEY,
+    chainId: CHAIN_ID,
+    seeds: OMNI_SEED,
+    l2Key: L2KEY,
+    accountId: ACCOUNT_ID
+  };
+  const res = await privateRequest('POST', '/register_user_v3', payload);
+  console.log('✅ Onboard Response:', res);
 }
 
-// Startup checks with onboarding
+// ✅ Load account info
+async function fetchAccount() {
+  const res = await privateRequest('GET', '/account');
+  console.log('✅ Account:', res);
+  return res;
+}
+
+// ✅ Load open positions
+async function fetchPositions() {
+  const res = await privateRequest('GET', '/account/positions');
+  console.log('✅ Positions:', res);
+  return res;
+}
+
+// ✅ Load balance
+async function fetchBalance() {
+  const res = await privateRequest('GET', '/account/balance');
+  console.log('✅ Balance:', res);
+  return res;
+}
+
+// 🔁 In-memory cache
+let latestBalance = null;
+let latestPositions = null;
+
+// 🔁 Refresh loop
+async function refreshLoop() {
+  latestBalance = await fetchBalance();
+  latestPositions = await fetchPositions();
+}
+setInterval(refreshLoop, 30000); // 30s
+
+// 🚀 Initial startup
 (async () => {
-  await loadExchangeInfo(); // Load config first
-  const time = await privateRequest('GET', '/time');
-  console.log('✅ Time Check:', time);
-
-  const positions = await privateRequest('GET', '/account/positions');
-  console.log('✅ Positions:', positions);
-
-  const balance = await privateRequest('GET', '/account/balance');
-  console.log('✅ Balance:', balance);
+  await onboardUser();
+  await refreshLoop();
 })();
 
-// In-memory state
-let latestPositions = null;
-let latestBalance = null;
+// 🌐 REST API
+app.get('/api/balance', (req, res) => res.json({ balance: latestBalance }));
+app.get('/api/positions', (req, res) => res.json({ positions: latestPositions }));
 
-// Auto-refresh every 30s
-setInterval(async () => {
-  latestPositions = await privateRequest('GET', '/account/positions');
-  latestBalance = await privateRequest('GET', '/account/balance');
-}, 30000);
-
-// REST API for frontend
-app.get('/api/positions', (req, res) => {
-  res.json({ positions: latestPositions });
-});
-
-app.get('/api/balance', (req, res) => {
-  res.json({ balance: latestBalance });
-});
-
-// Webhook for trading
+// ⚡ Trade Webhook
 app.post('/webhook', async (req, res) => {
-  const { side, symbol, size, price } = req.body;
-  const clientId = uuidv4();
-
+  const { symbol, side, size, price } = req.body;
   const payload = {
     symbol: symbol.replace('USD', '-USD'),
-    orderType: price ? 'LIMIT' : 'MARKET',
     side: side.toUpperCase(),
+    orderType: price ? 'LIMIT' : 'MARKET',
     price: price ? parseFloat(price) : undefined,
     size: parseFloat(size),
     timeInForce: 'GTC',
-    clientOrderId: clientId,
+    clientOrderId: uuidv4(),
     accountId: ACCOUNT_ID,
     l2Key: L2KEY,
-    maxFeeRate: 0.0005,
+    chainId: CHAIN_ID,
+    seeds: OMNI_SEED,
     reduceOnly: false,
-    chainId: CHAIN_ID || '42161', // Default Arbitrum chain ID
+    maxFeeRate: 0.0005,
     timestamp: Date.now()
   };
 
   const orderRes = await privateRequest('POST', '/order', payload);
-  console.log('Order Response:', orderRes);
-  res.json(orderRes || { error: 'Order failed' });
+  console.log('📦 Trade Order Result:', orderRes);
+  res.json(orderRes || { error: 'Trade failed' });
 });
 
 app.listen(PORT, () => {
