@@ -1,21 +1,29 @@
-// index.js
-
+// index.js - ApeX Omni Webhook Backend (Node.js)
 import express from 'express';
-import crypto from 'crypto';
 import dotenv from 'dotenv';
-import fs from 'fs';
+import bodyParser from 'body-parser';
 import axios from 'axios';
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
-
 const app = express();
-app.use(express.json());
 const PORT = process.env.PORT || 10000;
 
-// Env Variables
-const { API_KEY, SECRET, PASSPHRASE, ETH_PRIVATE_KEY, ACCOUNT_ID, OMNI_SEED, L2KEY, CHAIN_ID } = process.env;
+app.use(bodyParser.json());
 
-// Confirm env vars
+// Load env vars
+const {
+  API_KEY,
+  SECRET,
+  PASSPHRASE,
+  ETH_PRIVATE_KEY,
+  ACCOUNT_ID,
+  OMNI_SEED,
+  L2KEY,
+  CHAIN_ID
+} = process.env;
+
 console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
 console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
 console.log(`📡 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
@@ -23,80 +31,92 @@ console.log(`🔑 ETH_PRIVATE_KEY: ${ETH_PRIVATE_KEY ? '✔️' : '❌'}`);
 console.log(`📡 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
 console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
-console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
+console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-const OMNI_ENDPOINT = 'https://api.apex.exchange';
+const APEX_BASE_URL = 'https://api.omni.apex.exchange';
 
-// Store data in memory
-let cachedData = {
-  account: null,
-  positions: null
-};
+// Signature generator (for v3 auth)
+function generateSignature(method, endpoint, expires, body = '') {
+  const payload = method + endpoint + expires + body;
+  return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+}
 
-const headers = () => {
+// Authenticated request
+async function privateRequest(method, path, data = {}) {
   const timestamp = Date.now().toString();
-  const signString = timestamp + 'GET' + '/v3/account';
-  const signature = crypto.createHmac('sha256', SECRET).update(signString).digest('hex');
+  const endpoint = `/v3${path}`;
+  const bodyStr = method === 'GET' ? '' : JSON.stringify(data);
+  const signature = generateSignature(method, endpoint, timestamp, bodyStr);
 
-  return {
+  const headers = {
     'APEX-API-KEY': API_KEY,
-    'APEX-PASSPHRASE': PASSPHRASE,
-    'APEX-TIMESTAMP': timestamp,
-    'APEX-SIGNATURE': signature,
+    'APEX-API-PASSPHRASE': PASSPHRASE,
+    'APEX-API-SIGNATURE': signature,
+    'APEX-API-TIMESTAMP': timestamp,
     'Content-Type': 'application/json'
   };
-};
 
-const fetchAccountData = async () => {
   try {
-    const res = await axios.get(`${OMNI_ENDPOINT}/v3/account`, { headers: headers() });
-    cachedData.account = res.data;
-    fs.writeFileSync('account.json', JSON.stringify(res.data, null, 2));
-    console.log('✅ Account Data:', res.data);
+    const res = await axios({
+      method,
+      url: `${APEX_BASE_URL}${endpoint}`,
+      data,
+      headers
+    });
+    return res.data;
   } catch (err) {
-    console.error('❌ Account Fetch Error:', err.response?.data || err.message);
+    console.error(`❌ ${path} Fetch Error:`, err.response?.data || err.message);
+    return null;
   }
-};
+}
 
-const fetchPositionsData = async () => {
-  try {
-    const res = await axios.get(`${OMNI_ENDPOINT}/v3/positions`, { headers: headers() });
-    cachedData.positions = res.data;
-    fs.writeFileSync('positions.json', JSON.stringify(res.data, null, 2));
-    console.log('✅ Positions Data:', res.data);
-  } catch (err) {
-    console.error('❌ Positions Fetch Error:', err.response?.data || err.message);
-  }
-};
+// 🚀 Startup check - Fetch Account Info
+(async () => {
+  const account = await privateRequest('GET', '/account');
+  console.log('✅ Account Info:', account);
 
-// 🔁 Refresh every 60 seconds
-setInterval(() => {
-  fetchAccountData();
-  fetchPositionsData();
-}, 60 * 1000);
+  const positions = await privateRequest('GET', '/positions');
+  console.log('✅ Positions:', positions);
+})();
 
-// ⚙️ REST API to get cached data
+// 🧠 In-memory state
+let latestAccount = null;
+let latestPositions = null;
+
+// 🔁 Auto-refresh every 30s
+setInterval(async () => {
+  latestAccount = await privateRequest('GET', '/account');
+  latestPositions = await privateRequest('GET', '/positions');
+}, 30000);
+
+// 📡 REST API for frontend
 app.get('/api/account', (req, res) => {
-  res.json({ data: cachedData.account });
+  res.json({ account: latestAccount });
 });
 
 app.get('/api/positions', (req, res) => {
-  res.json({ data: cachedData.positions });
+  res.json({ positions: latestPositions });
 });
 
-// ✅ Trade Webhook listener
-app.post('/webhook/trade', async (req, res) => {
-  const { side, symbol, size } = req.body;
-  if (!side || !symbol || !size) return res.status(400).json({ error: 'Missing fields' });
+// ✅ Sample webhook for trading
+app.post('/webhook', async (req, res) => {
+  const { side, symbol, size, price } = req.body;
+  const clientId = uuidv4();
 
-  // Placeholder: Add real trading logic here
-  console.log(`🚀 Received Trade Command: ${side} ${size} ${symbol}`);
+  const payload = {
+    symbol,
+    orderType: 'LIMIT',
+    side,
+    price,
+    size,
+    timeInForce: 'GTC',
+    clientOrderId: clientId
+  };
 
-  return res.json({ success: true });
+  const orderRes = await privateRequest('POST', '/orders', payload);
+  res.json(orderRes);
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🧊 ICE KING running on port ${PORT}`);
-  fetchAccountData();
-  fetchPositionsData();
+  console.log(`🧊 ICE KING running on port ${PORT}`);
 });
