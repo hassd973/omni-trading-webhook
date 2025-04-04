@@ -1,121 +1,129 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-const crypto = require('crypto');
+import express from 'express';
+import dotenv from 'dotenv';
+import bodyParser from 'body-parser';
+import axios from 'axios';
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
+
+dotenv.config();
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 10000;
 
-console.log('API_KEY:', process.env.API_KEY);
-console.log('PASSPHRASE:', process.env.PASSPHRASE);
-console.log('SECRET:', process.env.SECRET);
-console.log('ACCOUNT_ID:', process.env.ACCOUNT_ID);
-console.log('ETHEREUM_ADDRESS:', process.env.ETHEREUM_ADDRESS);
-console.log('OMNI_SEED:', process.env.OMNI_SEED);
-console.log('L2KEY:', process.env.L2KEY);
+app.use(bodyParser.json());
 
-const BASE_URL = 'https://omni.apex.exchange/api/v3';
+// Load env vars
+const {
+  API_KEY,
+  SECRET,
+  PASSPHRASE,
+  ETH_PRIVATE_KEY,
+  ACCOUNT_ID,
+  OMNI_SEED,
+  L2KEY,
+  CHAIN_ID
+} = process.env;
 
-async function testApi() {
-    try {
-        const response = await axios.get(`${BASE_URL}/time`);
-        console.log('Manual API test successful:', response.data);
-    } catch (error) {
-        console.error('Manual API test failed:', error.message);
-        if (error.response) console.error('Test response data:', error.response.data);
-    }
+console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
+console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
+console.log(`📡 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
+console.log(`🔑 ETH_PRIVATE_KEY: ${ETH_PRIVATE_KEY ? '✔️' : '❌'}`);
+console.log(`📡 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
+console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
+console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
+console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
+
+const APEX_BASE_URL = 'https://omni.apex.exchange/api'; // Adjusted base URL
+
+// Signature generator (v3 auth)
+function generateSignature(method, endpoint, expires, body = '') {
+  const payload = method + endpoint + expires + body;
+  return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
 }
 
-function signRequest(method, path, params = {}) {
-    const timestamp = Date.now().toString();
-    const message = `${method}${path}${timestamp}${JSON.stringify(params)}`;
-    const signature = crypto
-        .createHmac('sha256', process.env.SECRET)
-        .update(message)
-        .digest('hex');
-    return {
-        'APEX-API-KEY': process.env.API_KEY,
-        'APEX-PASSPHRASE': process.env.PASSPHRASE,
-        'APEX-SIGNATURE': signature,
-        'APEX-TIMESTAMP': timestamp
-    };
+// Authenticated request
+async function privateRequest(method, path, data = {}) {
+  const timestamp = Date.now().toString();
+  const endpoint = `/v3${path}`; // Ensure v3 prefix
+  const bodyStr = method === 'GET' ? '' : JSON.stringify(data);
+  const signature = generateSignature(method, endpoint, timestamp, bodyStr);
+
+  const headers = {
+    'APEX-API-KEY': API_KEY,
+    'APEX-API-PASSPHRASE': PASSPHRASE,
+    'APEX-API-SIGNATURE': signature,
+    'APEX-API-TIMESTAMP': timestamp,
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const res = await axios({
+      method,
+      url: `${APEX_BASE_URL}${endpoint}`,
+      data: method === 'POST' ? data : undefined,
+      headers
+    });
+    return res.data;
+  } catch (err) {
+    console.error(`❌ ${path} Fetch Error:`, err.response?.data || err.message);
+    return null;
+  }
 }
 
-async function fetchPositions() {
-    const path = '/account/positions';
-    const headers = signRequest('GET', path);
-    try {
-        const response = await axios.get(`${BASE_URL}${path}`, { headers });
-        console.log('Positions:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Positions error:', error.response ? error.response.data : error.message);
-        return null;
-    }
-}
+// 🚀 Startup checks
+(async () => {
+  const time = await privateRequest('GET', '/time');
+  console.log('✅ Time Check:', time);
 
-async function fetchBalance() {
-    const path = '/account/balance';
-    const headers = signRequest('GET', path);
-    try {
-        const response = await axios.get(`${BASE_URL}${path}`, { headers });
-        console.log('Balance:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Balance error:', error.response ? error.response.data : error.message);
-        return null;
-    }
-}
+  const positions = await privateRequest('GET', '/account/positions');
+  console.log('✅ Positions:', positions);
 
-async function createOrder(symbol, side, type, size, price) {
-    const path = '/order';
-    const params = {
-        symbol: symbol.replace('USD', '-USD'),
-        side: side.toUpperCase(),
-        type: type.toUpperCase(),
-        size: parseFloat(size),
-        ...(price && { price: parseFloat(price) }),
-        timeInForce: 'GTC',
-        accountId: process.env.ACCOUNT_ID,
-        l2Key: process.env.L2KEY,
-        clientOrderId: `webhook-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-        maxFeeRate: 0.0005,
-        reduceOnly: false,
-        timestamp: Date.now()
-    };
+  const balance = await privateRequest('GET', '/account/balance');
+  console.log('✅ Balance:', balance);
+})();
 
-    const headers = signRequest('POST', path, params);
-    console.log('Sending order request:', { params, headers });
-    try {
-        const response = await axios.post(`${BASE_URL}${path}`, params, { headers });
-        console.log('Order response:', response.data);
-        return response.data;
-    } catch (error) {
-        throw new Error(error.response ? JSON.stringify(error.response.data) : error.message);
-    }
-}
+// 🧠 In-memory state
+let latestPositions = null;
+let latestBalance = null;
 
-testApi();
-fetchPositions();
-fetchBalance();
+// 🔁 Auto-refresh every 30s
+setInterval(async () => {
+  latestPositions = await privateRequest('GET', '/account/positions');
+  latestBalance = await privateRequest('GET', '/account/balance');
+}, 30000);
 
-app.post('/webhook', async (req, res) => {
-    try {
-        const { symbol, action, quantity, price } = req.body;
-        console.log('Received webhook:', req.body);
-        const order = await createOrder(
-            symbol,
-            action,
-            price ? 'LIMIT' : 'MARKET',
-            quantity,
-            price
-        );
-        console.log('Order placed:', order);
-        res.status(200).send('Order placed successfully');
-    } catch (error) {
-        console.error('Webhook error:', error.message);
-        res.status(500).send(`Error placing order: ${error.message}`);
-    }
+// 📡 REST API for frontend
+app.get('/api/positions', (req, res) => {
+  res.json({ positions: latestPositions });
 });
 
-const PORT = process.env.PORT || 3000; // Render uses PORT env
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.get('/api/balance', (req, res) => {
+  res.json({ balance: latestBalance });
+});
+
+// ✅ Webhook for trading
+app.post('/webhook', async (req, res) => {
+  const { side, symbol, size, price } = req.body;
+  const clientId = uuidv4();
+
+  const payload = {
+    symbol: symbol.replace('USD', '-USD'), // e.g., BTCUSD -> BTC-USD
+    orderType: price ? 'LIMIT' : 'MARKET',
+    side: side.toUpperCase(),
+    price: price ? parseFloat(price) : undefined,
+    size: parseFloat(size),
+    timeInForce: 'GTC',
+    clientOrderId: clientId,
+    accountId: ACCOUNT_ID,
+    l2Key: L2KEY,
+    maxFeeRate: 0.0005, // Java-inspired default
+    reduceOnly: false
+  };
+
+  const orderRes = await privateRequest('POST', '/order', payload);
+  console.log('Order Response:', orderRes);
+  res.json(orderRes || { error: 'Order failed' });
+});
+
+app.listen(PORT, () => {
+  console.log(`🧊 ICE KING running on port ${PORT}`);
+});
