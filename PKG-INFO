@@ -1,0 +1,21 @@
+Metadata-Version: 1.0.7
+Name: apexpro
+Version: 1.0.8
+Summary: Python3 ApexPro HTTP/WebSocket API Connector
+Home-page: https://github.com/ApeX-Protocol/apexpro-openapi
+Author: Dexter Dickinson
+License: MIT License
+Keywords: apex pro api connector
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
