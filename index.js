@@ -32,18 +32,18 @@ console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
 console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3'; // Fixed base URL with /v3
+const APEX_BASE_URL = 'https://omni.apex.exchange/api/v3'; // Correct v3 base URL
 
-// Signature generator (v3 auth)
-function generateSignature(method, endpoint, expires, body = '') {
-  const payload = method + endpoint + expires + body;
+// Signature generator (aligned with Java connector)
+function generateSignature(method, endpoint, timestamp, body = '') {
+  const payload = `${method}${endpoint}${timestamp}${body}`;
   return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
 }
 
 // Authenticated request
 async function privateRequest(method, path, data = {}) {
   const timestamp = Date.now().toString();
-  const endpoint = path; // No extra /v3 prefix here
+  const endpoint = path.startsWith('/') ? path : `/${path}`; // Ensure leading slash
   const bodyStr = method === 'GET' ? '' : JSON.stringify(data);
   const signature = generateSignature(method, endpoint, timestamp, bodyStr);
 
@@ -100,13 +100,13 @@ app.get('/api/balance', (req, res) => {
   res.json({ balance: latestBalance });
 });
 
-// ✅ Webhook for trading
+// ✅ Webhook for trading (Java-inspired)
 app.post('/webhook', async (req, res) => {
   const { side, symbol, size, price } = req.body;
   const clientId = uuidv4();
 
   const payload = {
-    symbol: symbol.replace('USD', '-USD'),
+    symbol: symbol.replace('USD', '-USD'), // e.g., BTCUSD -> BTC-USD
     orderType: price ? 'LIMIT' : 'MARKET',
     side: side.toUpperCase(),
     price: price ? parseFloat(price) : undefined,
@@ -115,8 +115,9 @@ app.post('/webhook', async (req, res) => {
     clientOrderId: clientId,
     accountId: ACCOUNT_ID,
     l2Key: L2KEY,
-    maxFeeRate: 0.0005,
-    reduceOnly: false
+    maxFeeRate: 0.0005, // From Java example
+    reduceOnly: false,
+    timestamp: Date.now()
   };
 
   const orderRes = await privateRequest('POST', '/order', payload);
