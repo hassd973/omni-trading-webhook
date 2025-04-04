@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { deriveZkKey, createApexClient } from './apex-sdk-node/src/pro/onboarding/index.js'; // adjust path if needed
+import { deriveZkKey } from './apex-sdk-node/src/pro/onboarding/tool/deriveZkKey.js';
+import { createApexClient } from './apex-sdk-node/src/pro/onboarding/ApexClient.js';
 
 dotenv.config();
 
