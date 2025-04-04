@@ -1,111 +1,102 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-const crypto = require('crypto');
-const { ethers } = require('ethers');
+// index.js
+
+import express from 'express';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import axios from 'axios';
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
+const PORT = process.env.PORT || 10000;
 
-const BASE_URL = 'https://omni.apex.exchange';
-const API_PREFIX = '/api/v3';
+// Env Variables
+const { API_KEY, SECRET, PASSPHRASE, ETH_PRIVATE_KEY, ACCOUNT_ID, OMNI_SEED, L2KEY, CHAIN_ID } = process.env;
 
-const requiredEnvVars = [
-  'API_KEY', 'SECRET', 'PASSPHRASE', 'ETH_PRIVATE_KEY', 'ACCOUNT_ID', 'OMNI_SEED', 'L2KEY', 'CHAIN_ID'
-];
+// Confirm env vars
+console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
+console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
+console.log(`📡 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
+console.log(`🔑 ETH_PRIVATE_KEY: ${ETH_PRIVATE_KEY ? '✔️' : '❌'}`);
+console.log(`📡 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
+console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
+console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
+console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
 
-requiredEnvVars.forEach((key) => {
-  const emoji = key.includes('KEY') ? '🔑' : key.includes('SEED') ? '🌍' : key.includes('CHAIN') ? '🧬' : '📡';
-  console.log(`${emoji} ${key}: ${process.env[key] ? '✔️' : '❌ Missing'}`);
-});
+const OMNI_ENDPOINT = 'https://api.apex.exchange';
 
-// Signature helper
-function signRequest(method, path, params = '') {
+// Store data in memory
+let cachedData = {
+  account: null,
+  positions: null
+};
+
+const headers = () => {
   const timestamp = Date.now().toString();
-  const message = `${method}${path}${timestamp}${params}`;
-  const signature = crypto.createHmac('sha256', process.env.SECRET).update(message).digest('hex');
+  const signString = timestamp + 'GET' + '/v3/account';
+  const signature = crypto.createHmac('sha256', SECRET).update(signString).digest('hex');
 
   return {
-    'Content-Type': 'application/json',
-    'APEX-API-KEY': process.env.API_KEY,
-    'APEX-PASSPHRASE': process.env.PASSPHRASE,
+    'APEX-API-KEY': API_KEY,
+    'APEX-PASSPHRASE': PASSPHRASE,
+    'APEX-TIMESTAMP': timestamp,
     'APEX-SIGNATURE': signature,
-    'APEX-TIMESTAMP': timestamp
+    'Content-Type': 'application/json'
   };
-}
+};
 
-// Fetch account info
-async function fetchAccount() {
-  const path = '/v3/account';
+const fetchAccountData = async () => {
   try {
-    const headers = signRequest('GET', path);
-    const response = await axios.get(`${BASE_URL}${path}`, { headers });
-    console.log('✅ Account info:', response.data);
-  } catch (error) {
-    console.error('❌ Account error:', error.response?.data || error.message);
+    const res = await axios.get(`${OMNI_ENDPOINT}/v3/account`, { headers: headers() });
+    cachedData.account = res.data;
+    fs.writeFileSync('account.json', JSON.stringify(res.data, null, 2));
+    console.log('✅ Account Data:', res.data);
+  } catch (err) {
+    console.error('❌ Account Fetch Error:', err.response?.data || err.message);
   }
-}
+};
 
-// Fetch positions
-async function fetchPositions() {
-  const path = '/v3/account/positions';
+const fetchPositionsData = async () => {
   try {
-    const headers = signRequest('GET', path);
-    const response = await axios.get(`${BASE_URL}${path}`, { headers });
-    console.log('✅ Positions:', response.data);
-  } catch (error) {
-    console.error('❌ Positions error:', error.response?.data || error.message);
+    const res = await axios.get(`${OMNI_ENDPOINT}/v3/positions`, { headers: headers() });
+    cachedData.positions = res.data;
+    fs.writeFileSync('positions.json', JSON.stringify(res.data, null, 2));
+    console.log('✅ Positions Data:', res.data);
+  } catch (err) {
+    console.error('❌ Positions Fetch Error:', err.response?.data || err.message);
   }
-}
+};
 
-// Place order from webhook
-async function createOrder(symbol, side, type, size, price) {
-  const path = '/v3/order';
-  const body = {
-    symbol: symbol.replace('USD', '-USD'),
-    side: side.toUpperCase(),
-    type: type.toUpperCase(),
-    size: parseFloat(size),
-    timeInForce: 'GTC',
-    accountId: process.env.ACCOUNT_ID,
-    l2Key: process.env.L2KEY,
-    clientOrderId: `webhook-${Date.now()}`,
-    timestamp: Date.now(),
-    ...(price && { price: parseFloat(price) })
-  };
+// 🔁 Refresh every 60 seconds
+setInterval(() => {
+  fetchAccountData();
+  fetchPositionsData();
+}, 60 * 1000);
 
-  const headers = signRequest('POST', path, JSON.stringify(body));
-
-  try {
-    const response = await axios.post(`${BASE_URL}${path}`, body, { headers });
-    return response.data;
-  } catch (error) {
-    console.error('❌ Order error:', error.response?.data || error.message);
-    throw new Error(error.response ? JSON.stringify(error.response.data) : error.message);
-  }
-}
-
-// Webhook endpoint
-app.post('/webhook', async (req, res) => {
-  const { symbol, action, quantity, price } = req.body;
-  try {
-    const order = await createOrder(symbol, action, price ? 'LIMIT' : 'MARKET', quantity, price);
-    console.log('✅ Order placed:', order);
-    res.status(200).send('Order placed successfully');
-  } catch (error) {
-    console.error('❌ Webhook order failed:', error.message);
-    res.status(500).send(`Order failed: ${error.message}`);
-  }
+// ⚙️ REST API to get cached data
+app.get('/api/account', (req, res) => {
+  res.json({ data: cachedData.account });
 });
 
-// Root
-app.get('/', (req, res) => {
-  res.send('✅ ICE KING Omni Webhook running');
+app.get('/api/positions', (req, res) => {
+  res.json({ data: cachedData.positions });
 });
 
-const PORT = process.env.PORT || 10000;
+// ✅ Trade Webhook listener
+app.post('/webhook/trade', async (req, res) => {
+  const { side, symbol, size } = req.body;
+  if (!side || !symbol || !size) return res.status(400).json({ error: 'Missing fields' });
+
+  // Placeholder: Add real trading logic here
+  console.log(`🚀 Received Trade Command: ${side} ${size} ${symbol}`);
+
+  return res.json({ success: true });
+});
+
 app.listen(PORT, () => {
-  console.log(`🧊 ICE KING running on port ${PORT}`);
-  fetchAccount();
-  fetchPositions();
+  console.log(`\n🧊 ICE KING running on port ${PORT}`);
+  fetchAccountData();
+  fetchPositionsData();
 });
