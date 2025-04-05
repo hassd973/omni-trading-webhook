@@ -17,9 +17,9 @@ const CONDITIONAL_TRANSFER_PADDING_BITS = 81;
  */
 export class SignableConditionalTransfer extends StarkSignable<StarkwareConditionalTransfer> {
   static fromTransfer(transfer: ConditionalTransferParams, networkId: NetworkId): SignableConditionalTransfer {
-    const nonce = clientIdToNonce(transfer.clientId).toString(); // Convert number to string
+    const nonce = clientIdToNonce(transfer.clientId); // Keep as number
     const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6');
-    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp).toString(); // Convert number to string
+    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp); // Keep as number
     const condition = transfer.fact; // Use fact as condition
 
     return new SignableConditionalTransfer(
