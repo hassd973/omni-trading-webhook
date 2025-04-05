@@ -1,7 +1,7 @@
 import BN from 'bn.js';
 import BigNumber from 'bignumber.js';
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, nonceFromClientId, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Fix import
+import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers';
 import { getPedersenHash } from '../lib/crypto';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { StarkwareWithdrawal, WithdrawalWithNonce, WithdrawalWithClientId, NetworkId } from '../types';
@@ -24,7 +24,7 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
     asset: string,
   ): SignableWithdrawal {
     // Make the nonce by hashing the client-provided ID.
-    const nonce = clientIdToNonce(withdrawal.clientId);
+    const nonce = clientIdToNonce(withdrawal.clientId).toString(); // Fix: Convert number to string
     return SignableWithdrawal.fromWithdrawalWithNonce(
       {
         ...withdrawal,
@@ -109,7 +109,7 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
   }
 
   public async getNonce(): Promise<string> {
-    return this.message.nonce.toString(); // Fix: Convert BN to string
+    return this.message.nonce; // No .toString() needed since nonce is already a string
   }
 
   toStarkware(): StarkwareWithdrawal {
