@@ -51,13 +51,13 @@ const apexClient = new ApexClient({
 // Startup checks
 (async () => {
   try {
-    const time = await apexClient.publicApi.getTime();
+    const time = await apexClient.publicApi.getServerTime();
     console.log('✅ Time Check:', time);
 
-    const positions = await apexClient.privateApi.positions();
+    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
     console.log('✅ Positions:', positions);
 
-    const balance = await apexClient.privateApi.getAccount();
+    const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
     console.log('✅ Balance:', balance);
   } catch (err) {
     console.error('❌ Startup Error:', err);
@@ -71,8 +71,8 @@ let latestBalance: any = null;
 // Auto-refresh every 30s
 setInterval(async () => {
   try {
-    latestPositions = await apexClient.privateApi.positions();
-    latestBalance = await apexClient.privateApi.getAccount();
+    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
+    latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
   } catch (err) {
     console.error('❌ Refresh Error:', err);
   }
@@ -99,7 +99,7 @@ app.post('/webhook', async (req: express.Request, res: express.Response) => {
 
   const orderParams = {
     symbol: symbol?.replace('USD', '-USD') || '',
-    side: side?.toUpperCase() as 'BUY' | 'SELL' || 'BUY',
+    side: (side?.toUpperCase() as 'BUY' | 'SELL') || 'BUY',
     type: price ? 'LIMIT' : 'MARKET',
     size: size ? parseFloat(size) : 0,
     price: price ? parseFloat(price) : undefined,
