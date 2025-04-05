@@ -51,10 +51,10 @@ const apexClient = new ApexClient({
 // Startup checks
 (async () => {
   try {
-    const time = await apexClient.publicApi.getServerTime();
+    const time = await apexClient.publicApi.getTime();
     console.log('✅ Time Check:', time);
 
-    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
+    const positions = await apexClient.privateApi.positions();
     console.log('✅ Positions:', positions);
 
     const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
@@ -71,7 +71,7 @@ let latestBalance: any = null;
 // Auto-refresh every 30s
 setInterval(async () => {
   try {
-    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
+    latestPositions = await apexClient.privateApi.positions();
     latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
   } catch (err) {
     console.error('❌ Refresh Error:', err);
