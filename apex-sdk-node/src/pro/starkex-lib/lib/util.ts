@@ -47,12 +47,13 @@ export function randomBuffer(numBytes: number): Buffer {
  */
 export function factToCondition(factRegistryAddress: string, fact: string): string {
   // Get Buffer equivalent of encode.packed(factRegistryAddress, fact).
-  const combinedHex: string = `${factRegistryAddress}${normalizeHex32(fact)}`;
+  const combinedHex: string = `${stripHexPrefix(factRegistryAddress)}${normalizeHex32(fact)}`;
   const combinedBuffer: Buffer = Buffer.from(stripHexPrefix(combinedHex), 'hex');
 
   // Hash the data, mask by 250 bits, and return the hex string equivalent.
-  const hashedData: Buffer = keccak256(combinedBuffer);
+  const hashedData = Buffer.from(keccak256(Uint8Array.from(combinedBuffer))); // Fix: Convert Uint8Array to Buffer
   const hashBN = hexToBn(hashedData.toString('hex'));
+
   console.log('combinedHex', combinedHex);
   console.log('faceToCondition-normalizeHex32', normalizeHex32(fact));
   console.log('faceToCondition-hashedData', hashedData.toString('hex'));
@@ -76,7 +77,6 @@ export function hexToBn(hex: string): BN {
  */
 export function decToBn(dec: string): BN {
   const reg = new RegExp(DEC_RE);
-  // if(!dec.match(DEC_RE)){
   if (!reg.test(dec)) {
     throw new Error('decToBn: Input is not a base-10 integer');
   }
@@ -95,8 +95,6 @@ export function intToBn(int: number): BN {
 
 /**
  * Convert a string to a BN equal to the left-aligned UTF-8 representation with a fixed bit length.
- *
- * The specified numBits is expected to be a multiple of four.
  */
 export function utf8ToBn(s: string, numBits: number): BN {
   if (numBits % 4 !== 0) {
