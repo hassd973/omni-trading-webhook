@@ -1,105 +1,126 @@
 import BN from 'bn.js';
 
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, nonceFromClientId, clientIdToNonce, toQuantumsExact } from '../helpers';
+import { isoTimestampToEpochHours, nonceFromClientId, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Fix import
 import { getPedersenHash } from '../lib';
-import { decToBn, factToCondition, hexToBn, intToBn } from '../lib/util';
-import { ConditionalTransferParams, NetworkId, StarkwareConditionalTransfer } from '../types';
-import { TRANSFER_FEE_ASSET_ID_BN, CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS } from './constants';
+import { decToBn, hexToBn, intToBn } from '../lib/util';
+import { NetworkId, StarkwareOrder } from '../types'; // Assuming types exist
+import { TRANSFER_FEE_ASSET_ID_BN } from './constants'; // Simplified import
 import { getCacheablePedersenHash } from './hashes';
 import { StarkSignable } from './stark-signable';
 
-// Note: Fees are not supported for conditional transfers.
-const MAX_AMOUNT_FEE_BN = new BN(0);
+const MAX_AMOUNT_FEE_BN = new BN(0); // Fees not supported assumption
 
-const CONDITIONAL_TRANSFER_PREFIX = 5;
-const CONDITIONAL_TRANSFER_PADDING_BITS = 81;
+const ORDER_PREFIX = 3; // Example value, adjust as per Starkware spec
+const ORDER_PADDING_BITS = 81; // Example, adjust if needed
 
 /**
- * Wrapper object to convert a conditional transfer, and hash, sign, and verify its signature.
+ * Wrapper object to convert an order, and hash, sign, and verify its signature.
  */
-export class SignableConditionalTransfer extends StarkSignable<StarkwareConditionalTransfer> {
-  static fromTransfer(transfer: ConditionalTransferParams, networkId: NetworkId): SignableConditionalTransfer {
-    const nonce = clientIdToNonce(transfer.clientId);
-    // The transfer asset is always the collateral asset.
-    const quantumsAmount = toQuantumsExact(transfer.humanAmount, COLLATERAL_ASSET);
+export class SignableOrder extends StarkSignable<StarkwareOrder> {
+  static fromOrder(
+    symbol: string,
+    side: 'BUY' | 'SELL',
+    humanBaseAmount: string,
+    humanQuoteAmount: string,
+    limitFee: string,
+    clientId: string,
+    expirationIsoTimestamp: string,
+    positionId: string,
+    networkId: NetworkId
+  ): SignableOrder {
+    const nonce = nonceFromClientId(clientId);
+    const baseAsset = symbol.split('-')[0]; // e.g., "BTC" from "BTC-USD"
+    const quoteAsset = COLLATERAL_ASSET; // Assuming USDC
+    const quantumsBase = assetToBaseQuantumNumber(baseAsset, humanBaseAmount, '1e10'); // Adjust quantum
+    const quantumsQuote = assetToBaseQuantumNumber(quoteAsset, humanQuoteAmount, '1e6');
+    const quantumsFee = assetToBaseQuantumNumber(quoteAsset, limitFee, '1e6');
+    const expirationEpochHours = isoTimestampToEpochHours(expirationIsoTimestamp);
 
-    // Convert to a Unix timestamp (in hours).
-    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp);
-    return new SignableConditionalTransfer(
+    return new SignableOrder(
       {
-        senderPositionId: transfer.senderPositionId,
-        receiverPositionId: transfer.receiverPositionId,
-        receiverPublicKey: transfer.receiverPublicKey,
-        condition: factToCondition(transfer.factRegistryAddress, transfer.fact),
-        quantumsAmount,
+        positionId,
+        baseAsset,
+        quoteAsset,
+        quantumsBase,
+        quantumsQuote,
+        quantumsFee,
         nonce,
         expirationEpochHours,
+        side,
       },
-      networkId,
+      networkId
     );
+  }
+
+  constructor(message: StarkwareOrder, networkId: NetworkId) {
+    super(message, networkId);
   }
 
   protected async calculateHash(): Promise<BN> {
-    const senderPositionIdBn = decToBn(this.message.senderPositionId);
-    const receiverPositionIdBn = decToBn(this.message.receiverPositionId);
-    const receiverPublicKeyBn = hexToBn(this.message.receiverPublicKey);
-    const conditionBn = hexToBn(this.message.condition);
-    const quantumsAmountBn = decToBn(this.message.quantumsAmount);
+    const positionIdBn = decToBn(this.message.positionId);
+    const quantumsBaseBn = decToBn(this.message.quantumsBase);
+    const quantumsQuoteBn = decToBn(this.message.quantumsQuote);
+    const quantumsFeeBn = decToBn(this.message.quantumsFee);
     const nonceBn = decToBn(this.message.nonce);
     const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours);
 
-    if (senderPositionIdBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.positionId) {
-      throw new Error('SignableOraclePrice: senderPositionId exceeds max value');
+    // Bit length checks (adjust constants as needed)
+    const FIELD_BIT_LENGTHS = {
+      positionId: 64,
+      quantumsAmount: 64,
+      nonce: 32,
+      expirationEpochHours: 32,
+    };
+
+    if (positionIdBn.bitLength() > FIELD_BIT_LENGTHS.positionId) {
+      throw new Error('SignableOrder: positionId exceeds max value');
     }
-    if (receiverPositionIdBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.positionId) {
-      throw new Error('SignableOraclePrice: receiverPositionId exceeds max value');
+    if (quantumsBaseBn.bitLength() > FIELD_BIT_LENGTHS.quantumsAmount) {
+      throw new Error('SignableOrder: quantumsBase exceeds max value');
     }
-    if (receiverPublicKeyBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.receiverPublicKey) {
-      throw new Error('SignableOraclePrice: receiverPublicKey exceeds max value');
+    if (quantumsQuoteBn.bitLength() > FIELD_BIT_LENGTHS.quantumsAmount) {
+      throw new Error('SignableOrder: quantumsQuote exceeds max value');
     }
-    if (conditionBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.condition) {
-      throw new Error('SignableOraclePrice: condition exceeds max value');
+    if (quantumsFeeBn.bitLength() > FIELD_BIT_LENGTHS.quantumsAmount) {
+      throw new Error('SignableOrder: quantumsFee exceeds max value');
     }
-    if (quantumsAmountBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.quantumsAmount) {
-      throw new Error('SignableOraclePrice: quantumsAmount exceeds max value');
+    if (nonceBn.bitLength() > FIELD_BIT_LENGTHS.nonce) {
+      throw new Error('SignableOrder: nonce exceeds max value');
     }
-    if (nonceBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.nonce) {
-      throw new Error('SignableOraclePrice: nonce exceeds max value');
-    }
-    if (expirationEpochHoursBn.bitLength() > CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.expirationEpochHours) {
-      throw new Error('SignableOraclePrice: expirationEpochHours exceeds max value');
+    if (expirationEpochHoursBn.bitLength() > FIELD_BIT_LENGTHS.expirationEpochHours) {
+      throw new Error('SignableOrder: expirationEpochHours exceeds max value');
     }
 
-    // The transfer asset is always the collateral asset.
-    // Fees are not supported for conditional transfers.
     const assetIds = await getCacheablePedersenHash(
       hexToBn(COLLATERAL_ASSET_ID_BY_NETWORK_ID()),
-      TRANSFER_FEE_ASSET_ID_BN,
+      TRANSFER_FEE_ASSET_ID_BN
     );
 
-    const transferPart1 = await getPedersenHash(await getPedersenHash(assetIds, receiverPublicKeyBn), conditionBn);
-    // Note: Use toString() to avoid mutating senderPositionIdBn.
-    const transferPart2 = new BN(senderPositionIdBn.toString(), 10)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.positionId)
-      .iadd(receiverPositionIdBn)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.positionId)
-      .iadd(senderPositionIdBn)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.nonce)
+    const orderPart1 = await getPedersenHash(
+      assetIds,
+      hexToBn(this.message.side === 'BUY' ? this.message.quoteAsset : this.message.baseAsset)
+    );
+    const orderPart2 = new BN(positionIdBn.toString(), 10)
+      .iushln(FIELD_BIT_LENGTHS.positionId)
+      .iadd(positionIdBn)
+      .iushln(FIELD_BIT_LENGTHS.nonce)
       .iadd(nonceBn);
-    const transferPart3 = new BN(CONDITIONAL_TRANSFER_PREFIX)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.quantumsAmount)
-      .iadd(quantumsAmountBn)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.quantumsAmount)
-      .iadd(MAX_AMOUNT_FEE_BN)
-      .iushln(CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS.expirationEpochHours)
+    const orderPart3 = new BN(ORDER_PREFIX)
+      .iushln(FIELD_BIT_LENGTHS.quantumsAmount)
+      .iadd(quantumsBaseBn)
+      .iushln(FIELD_BIT_LENGTHS.quantumsAmount)
+      .iadd(quantumsQuoteBn)
+      .iushln(FIELD_BIT_LENGTHS.quantumsAmount)
+      .iadd(quantumsFeeBn)
+      .iushln(FIELD_BIT_LENGTHS.expirationEpochHours)
       .iadd(expirationEpochHoursBn)
-      .iushln(CONDITIONAL_TRANSFER_PADDING_BITS);
+      .iushln(ORDER_PADDING_BITS);
 
-    return getPedersenHash(await getPedersenHash(transferPart1, transferPart2), transferPart3);
+    return getPedersenHash(await getPedersenHash(orderPart1, orderPart2), orderPart3);
   }
 
-  toStarkware(): StarkwareConditionalTransfer {
+  toStarkware(): StarkwareOrder {
     return this.message;
   }
 }
