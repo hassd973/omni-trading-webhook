@@ -1,7 +1,7 @@
 import BN from 'bn.js';
 import BigNumber from 'bignumber.js';
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, nonceFromClientId, toQuantumsExact, clientIdToNonce } from '../helpers';
+import { isoTimestampToEpochHours, nonceFromClientId, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Fix import
 import { getPedersenHash } from '../lib/crypto';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { StarkwareWithdrawal, WithdrawalWithNonce, WithdrawalWithClientId, NetworkId } from '../types';
@@ -44,12 +44,12 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
     const positionId = withdrawal.positionId;
     const nonce = withdrawal.nonce;
 
-    // The withdrawal asset is always the collateral asset.
-    let quantumsAmount = toQuantumsExact(withdrawal.humanAmount, COLLATERAL_ASSET);
+    // Use assetToBaseQuantumNumber with resolution from currency info
     const currencys = getPerpetual() ? getCurrencyV2() : getCurrency();
-    const currency_info: any = currencys.find((item) => item.id == asset);
-    quantumsAmount = withdrawal.humanAmount
-      ? new BigNumber(withdrawal.humanAmount).multipliedBy(currency_info.starkExResolution).toFixed()
+    const currencyInfo: any = currencys.find((item) => item.id === asset);
+    const quantum = `1e${currencyInfo.starkExResolution}`; // Convert resolution to string (e.g., "1e6")
+    const quantumsAmount = withdrawal.humanAmount
+      ? assetToBaseQuantumNumber(asset, withdrawal.humanAmount, quantum)
       : '';
 
     // Convert to a Unix timestamp (in hours).
@@ -67,6 +67,10 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
     );
   }
 
+  constructor(message: StarkwareWithdrawal, networkId: NetworkId) {
+    super(message, networkId);
+  }
+
   protected async calculateHash(): Promise<BN> {
     const ethAddressBN = hexToBn(this.message.ethAddress);
     const positionIdBn = decToBn(this.message.positionId);
@@ -75,16 +79,16 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
     const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours);
 
     if (positionIdBn.bitLength() > WITHDRAWAL_FIELD_BIT_LENGTHS.positionId) {
-      throw new Error('SignableOraclePrice: positionId exceeds max value');
+      throw new Error('SignableWithdrawal: positionId exceeds max value');
     }
     if (nonceBn.bitLength() > WITHDRAWAL_FIELD_BIT_LENGTHS.nonce) {
-      throw new Error('SignableOraclePrice: nonce exceeds max value');
+      throw new Error('SignableWithdrawal: nonce exceeds max value');
     }
     if (quantumsAmountBn.bitLength() > WITHDRAWAL_FIELD_BIT_LENGTHS.quantumsAmount) {
-      throw new Error('SignableOraclePrice: quantumsAmount exceeds max value');
+      throw new Error('SignableWithdrawal: quantumsAmount exceeds max value');
     }
     if (expirationEpochHoursBn.bitLength() > WITHDRAWAL_FIELD_BIT_LENGTHS.expirationEpochHours) {
-      throw new Error('SignableOraclePrice: expirationEpochHours exceeds max value');
+      throw new Error('SignableWithdrawal: expirationEpochHours exceeds max value');
     }
 
     const packedWithdrawalBn = new BN(WITHDRAWAL_PREFIX)
@@ -102,6 +106,10 @@ export class SignableWithdrawal extends StarkSignable<StarkwareWithdrawal> {
       await getPedersenHash(hexToBn(COLLATERAL_ASSET_ID_BY_NETWORK_ID()), ethAddressBN),
       packedWithdrawalBn,
     );
+  }
+
+  public async getNonce(): Promise<string> {
+    return this.message.nonce.toString(); // Fix: Convert BN to string
   }
 
   toStarkware(): StarkwareWithdrawal {
