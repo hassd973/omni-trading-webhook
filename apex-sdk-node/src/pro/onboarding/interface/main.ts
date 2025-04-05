@@ -1,12 +1,12 @@
 import Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 
-export type Provider = Web3['provider'];
+export type Provider = any; // Flexible typing for Web3 provider
 export interface Account {
   address: string;
   privateKey: string;
 }
-
+// ... rest of the file unchanged
 export type BigNumberable = BigNumber | string | number;
 
 export enum ApexMarket {
