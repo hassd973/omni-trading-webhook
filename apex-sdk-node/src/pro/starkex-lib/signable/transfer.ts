@@ -1,7 +1,7 @@
 import BN from 'bn.js';
 
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Fix import
+import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers';
 import { getPedersenHash } from '../lib/crypto';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { TransferParams, NetworkId, StarkwareTransfer } from '../types';
@@ -20,7 +20,7 @@ const TRANSFER_PADDING_BITS = 81;
  */
 export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
   static fromTransfer(transfer: TransferParams, networkId: NetworkId): SignableTransfer {
-    const nonce = clientIdToNonce(transfer.clientId);
+    const nonce = clientIdToNonce(transfer.clientId).toString(); // Fix: Convert number to string
 
     // The transfer asset is always the collateral asset.
     const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6'); // USDC quantum
@@ -100,7 +100,7 @@ export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
   }
 
   public async getNonce(): Promise<string> {
-    return this.message.nonce.toString(); // Fix: Convert BN to string
+    return this.message.nonce; // No .toString() needed since nonce is already a string
   }
 
   toStarkware(): StarkwareTransfer {
