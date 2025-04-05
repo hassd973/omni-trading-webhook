@@ -3,7 +3,7 @@ import {
   addOrderExpirationBufferHours,
   isoTimestampToEpochHours,
   clientIdToNonce,
-  assetToBaseQuantumNumber, // Replacement for missing functions
+  assetToBaseQuantumNumber,
 } from '../helpers';
 import { getPedersenHash } from '../lib';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
@@ -52,25 +52,31 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
     // Within the Starkware system, there is currently only one order type.
     const orderType = StarkwareOrderType.LIMIT_ORDER_WITH_FEES;
 
-    // Custom implementation to replace getStarkwareAmounts
+    // Determine if the order is buying synthetic
     const isBuyingSynthetic = order.side === 'BUY';
+
+    // Handle quantumsAmountSynthetic with a default if amount is undefined
     const quantumsAmountSynthetic = assetToBaseQuantumNumber(
-      order.symbol, // Assuming symbol is the asset
-      order.amount, // Assuming amount is provided
-      '1e6',        // Adjust precision based on asset
+      order.symbol,           // Asset identifier
+      order.amount || '0',    // Default to '0' if amount is missing
+      '1e6',                  // Precision (adjust based on asset)
     );
-    const quantumsAmountCollateral = '0'; // Placeholder: adjust based on your logic
-    const assetIdSynthetic = order.assetIdSynthetic || '0x123'; // Placeholder
-    const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder
 
-    // Custom implementation to replace getStarkwareLimitFeeAmount
+    // Handle quantumsAmountCollateral (use quoteAmount if available)
+    const quantumsAmountCollateral = order.quoteAmount || '0'; // Default to '0' if not provided
+
+    // Provide defaults for asset IDs if not specified
+    const assetIdSynthetic = order.assetIdSynthetic || '0x123';  // Placeholder synthetic asset ID
+    const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder collateral asset ID
+
+    // Calculate fee amount
     const quantumsAmountFee = assetToBaseQuantumNumber(
-      order.symbol, // Assuming fee is in same asset
-      order.limitFee, // Assuming limitFee is human-readable
-      '1e6',         // Adjust precision
+      order.symbol,           // Assuming fee is in the same asset as symbol
+      order.limitFee,         // Human-readable limit fee
+      '1e6',                  // Precision (adjust based on asset)
     );
 
-    // Convert to a Unix timestamp (in hours) and add buffer to ensure signature is valid on-chain.
+    // Convert timestamp to expiration in hours with buffer
     const expirationEpochHours = addOrderExpirationBufferHours(isoTimestampToEpochHours(order.expirationIsoTimestamp));
 
     return new SignableOrder(
@@ -82,7 +88,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
         quantumsAmountFee,
         assetIdSynthetic,
         assetIdCollateral,
-        assetIdFee: assetIdCollateral,
+        assetIdFee: assetIdCollateral, // Fee assumed to be in collateral asset
         positionId,
         isBuyingSynthetic,
         expirationEpochHours,
@@ -92,7 +98,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
   }
 
   protected async calculateHash(): Promise<BN> {
-    let message = this.message;
+    const message = this.message;
     const assetIdSyntheticBn = hexToBn(message.assetIdSynthetic);
     const assetIdCollateralBn = hexToBn(message.assetIdCollateral);
     const assetIdFeeBn = hexToBn(message.assetIdFee);
