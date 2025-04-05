@@ -1,7 +1,7 @@
 import BN from 'bn.js';
 
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, toQuantumsExact, clientIdToNonce } from '../helpers';
+import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Fix import
 import { getPedersenHash } from '../lib/crypto';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { TransferParams, NetworkId, StarkwareTransfer } from '../types';
@@ -23,7 +23,7 @@ export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
     const nonce = clientIdToNonce(transfer.clientId);
 
     // The transfer asset is always the collateral asset.
-    const quantumsAmount = toQuantumsExact(transfer.humanAmount, COLLATERAL_ASSET);
+    const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6'); // USDC quantum
     // Convert to a Unix timestamp (in hours).
     const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp);
 
@@ -40,6 +40,10 @@ export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
     );
   }
 
+  constructor(message: StarkwareTransfer, networkId: NetworkId) {
+    super(message, networkId);
+  }
+
   protected async calculateHash(): Promise<BN> {
     const senderPositionIdBn = decToBn(this.message.senderPositionId);
     const receiverPositionIdBn = decToBn(this.message.receiverPositionId);
@@ -49,22 +53,22 @@ export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
     const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours);
 
     if (senderPositionIdBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.positionId) {
-      throw new Error('SignableOraclePrice: senderPositionId exceeds max value');
+      throw new Error('SignableTransfer: senderPositionId exceeds max value');
     }
     if (receiverPositionIdBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.positionId) {
-      throw new Error('SignableOraclePrice: receiverPositionId exceeds max value');
+      throw new Error('SignableTransfer: receiverPositionId exceeds max value');
     }
     if (receiverPublicKeyBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.receiverPublicKey) {
-      throw new Error('SignableOraclePrice: receiverPublicKey exceeds max value');
+      throw new Error('SignableTransfer: receiverPublicKey exceeds max value');
     }
     if (quantumsAmountBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.quantumsAmount) {
-      throw new Error('SignableOraclePrice: quantumsAmount exceeds max value');
+      throw new Error('SignableTransfer: quantumsAmount exceeds max value');
     }
     if (nonceBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.nonce) {
-      throw new Error('SignableOraclePrice: nonce exceeds max value');
+      throw new Error('SignableTransfer: nonce exceeds max value');
     }
     if (expirationEpochHoursBn.bitLength() > TRANSFER_FIELD_BIT_LENGTHS.expirationEpochHours) {
-      throw new Error('SignableOraclePrice: expirationEpochHours exceeds max value');
+      throw new Error('SignableTransfer: expirationEpochHours exceeds max value');
     }
 
     // The transfer asset is always the collateral asset.
@@ -93,6 +97,10 @@ export class SignableTransfer extends StarkSignable<StarkwareTransfer> {
       .iushln(TRANSFER_PADDING_BITS);
 
     return getPedersenHash(await getPedersenHash(transferPart1, transferPart2), transferPart3);
+  }
+
+  public async getNonce(): Promise<string> {
+    return this.message.nonce.toString(); // Fix: Convert BN to string
   }
 
   toStarkware(): StarkwareTransfer {
