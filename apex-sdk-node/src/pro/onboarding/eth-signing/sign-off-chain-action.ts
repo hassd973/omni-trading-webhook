@@ -3,7 +3,7 @@ import * as ethers from 'ethers';
 import _ from 'lodash';
 import Web3 from 'web3';
 
-import { SigningMethod, SignatureTypes, Address, Account } from '../interface/main'; // Fix: EthereumAccount -> Account
+import { SigningMethod, SignatureTypes, Address, Account } from '../interface/main';
 import {
   EIP712_DOMAIN_STRING_NO_CONTRACT,
   EIP712_DOMAIN_STRUCT_NO_CONTRACT,
@@ -54,7 +54,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     signer: string,
     signingMethod: SigningMethod,
     message: M,
-    env: ENV
+    env: ENV,
   ): Promise<string | { value: string; l2KeyHash: string }> {
     const walletAccount: Account | undefined =
       this.web3.eth.accounts.wallet[signer as unknown as number];
@@ -95,6 +95,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           );
           return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
         }
+        break; // Add break to avoid fallthrough
 
       case SigningMethod.MetaMask:
       case SigningMethod.MetaMaskLatest:
@@ -177,7 +178,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
   }
 
   public getDomainHash(): string {
-    const hash: string | was null = Web3.utils.soliditySha3(
+    const hash: string | null = Web3.utils.soliditySha3( // Fix: 'was null' -> 'null'
       { t: 'bytes32', v: hashString(EIP712_DOMAIN_STRING_NO_CONTRACT) },
       { t: 'bytes32', v: hashString(this.domain) },
       { t: 'bytes32', v: hashString(this.version) },
