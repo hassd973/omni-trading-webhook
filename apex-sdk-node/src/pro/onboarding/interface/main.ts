@@ -1,7 +1,12 @@
-import { HttpProvider, IpcProvider, WebsocketProvider } from "web3-core";
-import BigNumber from "bignumber.js";
+import Web3 from 'web3';
+import BigNumber from 'bignumber.js';
 
-export type { Account as EthereumAccount } from "web3-core";
+export type Provider = Web3['provider'];
+export interface Account {
+  address: string;
+  privateKey: string;
+}
+
 export type BigNumberable = BigNumber | string | number;
 
 export enum ApexMarket {
@@ -43,6 +48,7 @@ export enum ApexMarket {
   XTZ_USD = "XTZ-USD",
   HNT_USD = "HNT-USD",
 }
+
 export enum ApexAsset {
   USDC = "USDC",
   USDT = "USDT",
@@ -88,7 +94,6 @@ export enum TransferAsset {
 }
 
 export type Market = ApexMarket;
-
 export type Asset = ApexAsset;
 
 interface ApiStarkwareSigned {
@@ -97,16 +102,17 @@ interface ApiStarkwareSigned {
 }
 
 export enum SigningMethod {
-  Compatibility = "Compatibility", // picks intelligently between UnsafeHash and Hash
-  UnsafeHash = "UnsafeHash", // raw hash signed
-  Hash = "Hash", // hash prepended according to EIP-191
-  TypedData = "TypedData", // order hashed according to EIP-712
-  MetaMask = "MetaMask", // order hashed according to EIP-712 (MetaMask-only)
-  MetaMaskLatest = "MetaMaskLatest", // ... according to latest version of EIP-712 (MetaMask-only)
-  CoinbaseWallet = "CoinbaseWallet", // ... according to latest version of EIP-712 (CoinbaseWallet)
-  Personal = "Personal", // message signed with personal_sign
-  Personal2 = "Personal2", // message signed with personal_sign
+  Compatibility = "Compatibility",
+  UnsafeHash = "UnsafeHash",
+  Hash = "Hash",
+  TypedData = "TypedData",
+  MetaMask = "MetaMask",
+  MetaMaskLatest = "MetaMaskLatest",
+  CoinbaseWallet = "CoinbaseWallet",
+  Personal = "Personal",
+  Personal2 = "Personal2",
 }
+
 export enum SignatureTypes {
   NO_PREPEND = 0,
   DECIMAL = 1,
@@ -120,8 +126,8 @@ export interface OnboardingAction {
 }
 
 export interface KeyPair {
-  publicKey: string; // Required x-coordinate.
-  publicKeyYCoordinate?: string; // Optional y-coordinate.
+  publicKey: string;
+  publicKeyYCoordinate?: string;
   privateKey: string;
 }
 
@@ -140,18 +146,17 @@ export enum RequestMethod {
   GET = "GET",
   DELETE = "DELETE",
 }
+
 export enum AccountAction {
   DEPOSIT = "DEPOSIT",
   WITHDRAWAL = "WITHDRAWAL",
 }
-/**
- * @param LONG
- * @param SHORT
- * */
+
 export enum SideAction {
   LONG = "LONG",
   SHORT = "SHORT",
 }
+
 export enum AccountLeaderboardPnlPeriod {
   DAILY = "DAILY",
   WEEKLY = "WEEKLY",
@@ -163,6 +168,7 @@ export enum AccountLeaderboardPnlPeriod {
 }
 
 export type ISO8601 = string | number;
+
 export interface AccountLeaderboardPnlResponseObject {
   absolutePnl: string;
   percentPnl: string;
@@ -178,6 +184,7 @@ export interface AccountLeaderboardPnlResponseObject {
   hedgieWon: number | null;
   prizeWon: string | null;
 }
+
 export enum LeaderboardPnlPeriod {
   DAILY = "DAILY",
   WEEKLY = "WEEKLY",
@@ -196,8 +203,6 @@ export enum LeaguesExpectedOutcome {
   PROMOTION = "PROMOTION",
   DEMOTION = "DEMOTION",
   SAME_LEAGUE = "SAME_LEAGUE",
-
-  // deprecated.
   RELEGATION = "RELEGATION",
 }
 
@@ -213,6 +218,7 @@ export interface AccountResponseObject {
   id: string;
   quoteBalance: string;
 }
+
 export interface ApiFastWithdrawal extends ApiStarkwareSigned {
   creditAsset: TransferAsset;
   creditAmount: string;
@@ -226,6 +232,7 @@ export interface ApiFastWithdrawal extends ApiStarkwareSigned {
   erc20Address: string;
   lpAccountId: string;
 }
+
 export type PositionsMap = { [symbol: string]: PositionResponseObject };
 
 export interface PositionResponseObject {
@@ -250,6 +257,7 @@ export enum PositionStatus {
   CLOSED = "CLOSED",
   LIQUIDATED = "LIQUIDATED",
 }
+
 export interface ApiFastWithdrawalParams extends ApiFastWithdrawal {
   lpStarkKey: string;
   factRegistryAddress: string;
@@ -265,6 +273,7 @@ export interface ApiKeyCredentials {
   secret: string;
   passphrase: string;
 }
+
 export interface ApiOrder extends ApiStarkwareSigned {
   symbol: Market;
   side: OrderSide;
@@ -280,14 +289,11 @@ export interface ApiOrder extends ApiStarkwareSigned {
   triggerPrice?: string;
   trailingPercent?: string;
   reduceOnly?: boolean;
-
   isPositionTpsl?: boolean;
-
   isOpenTpslOrder?: boolean;
   isSetOpenTp?: boolean;
   isSetOpenSl?: boolean;
-
-  tpSide?: string; // sell -> tickSize buy -> lastPrice * 10
+  tpSide?: string;
   tpPrice?: string;
   tpSize?: string;
   tpLimitFee?: string;
@@ -296,8 +302,7 @@ export interface ApiOrder extends ApiStarkwareSigned {
   tpTriggerPriceType?: string;
   tpExpiration?: string;
   tpSignature?: string;
-
-  slSide?: string; // sell -> tickSize buy -> lastPrice * 10
+  slSide?: string;
   slPrice?: string;
   slSize?: string;
   slLimitFee?: string;
@@ -306,7 +311,6 @@ export interface ApiOrder extends ApiStarkwareSigned {
   slTriggerPriceType?: string;
   slExpiration?: string;
   slSignature?: string;
-
 }
 
 export interface OrderSignatureOptions {
@@ -317,22 +321,22 @@ export interface OrderSignatureOptions {
   limitFee: string;
   expiration: string;
 }
+
 export enum OrderSide {
   BUY = "BUY",
   SELL = "SELL",
 }
+
 export enum OrderType {
   LIMIT_ORDER_WITH_FEES = "LIMIT_ORDER_WITH_FEES",
 }
-interface ApiStarkwareSigned {
-  signature: string;
-  expiration: string;
-}
+
 export enum TimeInForce {
   GTT = "GTT",
   FOK = "FOK",
   IOC = "IOC",
 }
+
 export interface ApiTransfer extends ApiStarkwareSigned {
   amount: string;
   clientId: string;
@@ -349,6 +353,7 @@ export interface ApiWithdrawal extends ApiStarkwareSigned {
 }
 
 export type Data = any;
+
 export interface FillResponseObject {
   id: string;
   side: OrderSide;
@@ -361,6 +366,7 @@ export interface FillResponseObject {
   createdAt: ISO8601;
   orderId: string | null | undefined;
 }
+
 export interface FundingResponseObject {
   symbol: Market;
   payment: string;
@@ -369,6 +375,7 @@ export interface FundingResponseObject {
   price: string;
   effectiveAt: ISO8601;
 }
+
 export type GenericParams = { [name: string]: any };
 
 export interface HistoricalPnlResponseObject {
@@ -378,7 +385,9 @@ export interface HistoricalPnlResponseObject {
   netTransfers: string;
   accountId: string;
 }
+
 export type ISO31661ALPHA2 = string;
+
 export interface LiquidityProviderRewardsResponseObject {
   epoch: number;
   epochStart: ISO8601;
@@ -397,10 +406,12 @@ export interface LiquidityRewards {
   totalRewards: string;
   estimatedRewards: string;
 }
+
 export interface StakedAPEX {
   averageStakedAPEX: string;
   totalAverageStakedAPEX: string;
 }
+
 export interface OrderResponseObject {
   id: string;
   clientId?: string;
@@ -421,6 +432,7 @@ export interface OrderResponseObject {
   postOnly: boolean;
   cancelReason?: string | null;
 }
+
 export enum OrderStatus {
   PENDING = "PENDING",
   OPEN = "OPEN",
@@ -428,6 +440,7 @@ export enum OrderStatus {
   CANCELED = "CANCELED",
   UNTRIGGERED = "UNTRIGGERED",
 }
+
 export enum OrderRecordType {
   OPEN = "openOrders",
   HISTORY = "historyOrders",
@@ -436,7 +449,7 @@ export enum OrderRecordType {
 }
 
 export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-export type Provider = HttpProvider | IpcProvider | WebsocketProvider;
+
 export interface RetroactiveMiningRewardsResponseObject {
   epoch: number;
   epochStart: ISO8601;
@@ -444,11 +457,13 @@ export interface RetroactiveMiningRewardsResponseObject {
   retroactiveMining: RetroactiveMiningRewards;
   estimatedRewards: string;
 }
+
 export interface RetroactiveMiningRewards {
   allocation: string;
   targetVolume: string;
   volume: string;
 }
+
 export interface TradingRewardsResponseObject {
   epoch: number;
   epochStart: ISO8601;
@@ -460,21 +475,26 @@ export interface TradingRewardsResponseObject {
   totalRewards: string;
   estimatedRewards: string;
 }
+
 export interface Fees {
   feesPaid: string;
   totalFeesPaid: string;
 }
+
 export interface OpenInterest {
   averageOpenInterest: string;
   totalAverageOpenInterest: string;
 }
+
 export interface Weight {
   weight: string;
   totalWeight: string;
 }
+
 export interface StakedAPEXIncludingFloor extends StakedAPEX {
   averageStakedAPEXWithFloor: string;
 }
+
 export interface TransferParams extends ApiStarkwareSigned {
   amount: string;
   clientId: string;
@@ -489,6 +509,7 @@ export interface TransferParams extends ApiStarkwareSigned {
   contractAddress?: string;
   lpPositionId?: string;
 }
+
 export interface StarklibTransferParams {
   senderPositionId: string;
   receiverPositionId: string;
@@ -497,27 +518,33 @@ export interface StarklibTransferParams {
   clientId: string;
   expirationIsoTimestamp: string;
 }
+
 interface OrderParamsBase {
   positionId: string;
   humanSize: string;
-  limitFee: string; // Max fee fraction, e.g. 0.01 is a max 1% fee.
+  limitFee: string;
   symbol: string;
   side: OrderSide;
   expirationIsoTimestamp: string;
 }
+
 interface WithClientId {
   clientId: string;
   nonce?: undefined;
 }
+
 export interface WithPrice {
   humanPrice: string;
   humanQuoteAmount?: undefined;
 }
+
 export interface WithQuoteAmount {
   humanPrice?: undefined;
   humanQuoteAmount: string;
 }
+
 export type OrderWithClientId = OrderParamsBase & WithPrice & WithClientId;
+
 export interface TransferResponseObject {
   id: string;
   type: string;
@@ -534,6 +561,7 @@ export interface TransferResponseObject {
   toAddress?: string;
   fee: string | number;
 }
+
 export interface UserResponseObject {
   ethereumAddress: string;
   isRegistered: boolean;
@@ -553,6 +581,7 @@ export interface UserResponseObject {
   isEmailVerified: boolean;
   country: ISO31661ALPHA2 | null;
 }
+
 export interface ActiveOrderResponseObject {
   id: string;
   accountId: string;
