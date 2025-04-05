@@ -3,7 +3,7 @@ import * as ethers from 'ethers';
 import _ from 'lodash';
 import Web3 from 'web3';
 
-import { SigningMethod, SignatureTypes, Address, EthereumAccount } from '../interface/main';
+import { SigningMethod, SignatureTypes, Address, Account } from '../interface/main'; // Fix: EthereumAccount -> Account
 import {
   EIP712_DOMAIN_STRING_NO_CONTRACT,
   EIP712_DOMAIN_STRUCT_NO_CONTRACT,
@@ -16,8 +16,6 @@ import {
 import { Signer } from './signer';
 import { ENV } from '../../Constant';
 
-// IMPORTANT: The order of these params affects the message signed with SigningMethod.PERSONAL.
-//            The message should not be changed at all since it's used to generated default keys.
 const PERSONAL_SIGN_DOMAIN_PARAMS = ['name', 'version', 'chainId'];
 
 type EIP712Struct = {
@@ -58,9 +56,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     message: M,
     env: ENV
   ): Promise<string | { value: string; l2KeyHash: string }> {
-    // If the address is in the wallet, sign with it so we don't have to use the web3 provider.
-    const walletAccount: EthereumAccount | undefined =
-      // Hack: The TypeScript type incorrectly has index signature on number but not string.
+    const walletAccount: Account | undefined =
       this.web3.eth.accounts.wallet[signer as unknown as number];
 
     switch (signingMethod) {
@@ -89,10 +85,8 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         return hashSig;
       }
 
-      // @ts-ignore Fallthrough case in switch.
       case SigningMethod.TypedData:
-        // If the private key is available locally, sign locally without using web3.
-        if (walletAccount.privateKey) {
+        if (walletAccount?.privateKey) {
           const wallet = new ethers.Wallet(walletAccount.privateKey);
           const rawSignature = await wallet._signTypedData(
             this.getDomainData(),
@@ -102,7 +96,6 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
         }
 
-      /* falls through */
       case SigningMethod.MetaMask:
       case SigningMethod.MetaMaskLatest:
       case SigningMethod.CoinbaseWallet: {
@@ -127,14 +120,11 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
 
       case SigningMethod.Personal: {
         const messageString = this.getPersonalSignMessage(message);
-        const sig = this.ethSignPersonalInternal(signer, messageString);
-        return sig;
+        return this.ethSignPersonalInternal(signer, messageString);
       }
       case SigningMethod.Personal2: {
-        let messageString = this.getPersonalSignMessage(message);
-        // 生成starkKey 把chainId变更为envId
-        const sig = this.ethSignPersonalInternal(signer, messageString.replace('chainId', 'envId'), env);
-        return sig;
+        const messageString = this.getPersonalSignMessage(message).replace('chainId', 'envId');
+        return this.ethSignPersonalInternal(signer, messageString, env);
       }
 
       default:
@@ -165,14 +155,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     return addressesAreEqual(signer, expectedSigner);
   }
 
-  /**
-   * Get the message string to be signed when using SignatureTypes.PERSONAL.
-   *
-   * This signing method may be used in cases where EIP-712 signing is not possible.
-   */
   public getPersonalSignMessage(message: M): string {
-    // Make sure the output is deterministic for a given input.
-
     const json = JSON.stringify(
       {
         ..._.pick(this.getDomainData(), PERSONAL_SIGN_DOMAIN_PARAMS),
@@ -194,13 +177,12 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
   }
 
   public getDomainHash(): string {
-    const hash: string | null = Web3.utils.soliditySha3(
+    const hash: string | was null = Web3.utils.soliditySha3(
       { t: 'bytes32', v: hashString(EIP712_DOMAIN_STRING_NO_CONTRACT) },
       { t: 'bytes32', v: hashString(this.domain) },
       { t: 'bytes32', v: hashString(this.version) },
       { t: 'uint256', v: new BigNumber(this.networkId).toFixed(0) },
     );
-    // Non-null assertion operator is safe, hash is null only on empty input.
     return hash!;
   }
 
