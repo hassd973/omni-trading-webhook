@@ -11,8 +11,6 @@ export const SYNTHETIC_ASSETS = _.without(ALL_ASSETS, COLLATERAL_ASSET) as Synth
 
 /**
  * The resolution represents the number of decimals of precision used in the Starkware system.
- *
- * For example, a resolution of 9 for ETH means that 1e-9 ETH = 1 Gwei is the smallest unit.
  */
 export const ASSET_RESOLUTION: Record<ApexAsset, number> = {
   [ApexAsset.USDT]: 6,
@@ -54,16 +52,17 @@ export const ASSET_RESOLUTION: Record<ApexAsset, number> = {
 };
 
 export const COLLATERAL_ASSET_ID_BY_NETWORK_ID = () => {
-  const currentPerpetual = getPerpetual()?.toUpperCase?.()
+  const currentPerpetual = getPerpetual()?.toUpperCase?.();
   const currency = currentPerpetual ? getCurrencyV2() : getCurrency();
   let starkExAssetId = '';
   currency.map((item: any) => {
-    if (item.id == (currentPerpetual || 'USDC')) {
+    if (item.id === (currentPerpetual || 'USDC')) {
       starkExAssetId = item.starkExAssetId;
     }
   });
   return starkExAssetId;
 };
+
 /**
  * Mapping from a synthetic asset to its asset ID.
  */
@@ -89,8 +88,8 @@ function makeCollateralAssetId(tokenAddress: string, quantization: number | stri
     Buffer.from(normalizeHex32(tokenAddress), 'hex'),
     Buffer.from(normalizeHex32(new BN(quantization).toString(16)), 'hex'),
   ]);
-  const result = keccak256(data);
-  const resultBN = new BN(result.toString('hex'), 16);
+  const result = keccak256(Uint8Array.from(data)); // Fix: Convert Buffer to Uint8Array
+  const resultBN = new BN(result, 16); // Directly use Uint8Array as hex
   resultBN.imaskn(250);
   return `0x${normalizeHex32(resultBN.toString(16))}`;
 }
