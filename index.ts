@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 
-// Load env vars with explicit typing
+// Load env vars
 const {
   API_KEY,
   SECRET,
@@ -21,16 +21,7 @@ const {
   OMNI_SEED,
   L2KEY,
   CHAIN_ID = '42161'
-} = process.env as {
-  API_KEY?: string;
-  SECRET?: string;
-  PASSPHRASE?: string;
-  ETH_PRIVATE_KEY?: string;
-  ACCOUNT_ID?: string;
-  OMNI_SEED?: string;
-  L2KEY?: string;
-  CHAIN_ID?: string;
-};
+} = process.env;
 
 console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
 console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
@@ -41,57 +32,53 @@ console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
 console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-// Initialize ApexClient with required fields
+// Initialize ApexClient
 const apexClient = new ApexClient({
-  networkId: parseInt(CHAIN_ID),
-  apiKey: API_KEY!,
-  apiSecret: SECRET!,
-  passphrase: PASSPHRASE!,
-  ethPrivateKey: ETH_PRIVATE_KEY!,
-  seeds: OMNI_SEED!,
-  l2Key: L2KEY!,
-  accountId: ACCOUNT_ID!
+  networkId: parseInt(CHAIN_ID || '42161'),
+  apiKeyCredentials: {
+    key: API_KEY || '',
+    secret: SECRET || '',
+    passphrase: PASSPHRASE || ''
+  },
+  starkKeyPair: {
+    publicKey: L2KEY || '',
+    privateKey: OMNI_SEED || ''
+  },
+  accountId: ACCOUNT_ID || '',
+  ethPrivateKey: ETH_PRIVATE_KEY || ''
 });
-
-// Type definitions for state
-interface Position {
-  [key: string]: any;
-}
-interface Balance {
-  [key: string]: any;
-}
 
 // Startup checks
 (async () => {
   try {
-    const time = await apexClient.publicApi.getServerTime();
+    const time = await apexClient.publicApi.getTime();
     console.log('✅ Time Check:', time);
 
-    const positions = await apexClient.privateApi.getUserPositions();
+    const positions = await apexClient.privateApi.positions();
     console.log('✅ Positions:', positions);
 
-    const balance = await apexClient.privateApi.accountBalance();
+    const balance = await apexClient.privateApi.getAccount();
     console.log('✅ Balance:', balance);
   } catch (err) {
     console.error('❌ Startup Error:', err);
   }
 })();
 
-// In-memory state with explicit types
-let latestPositions: Position[] | null = null;
-let latestBalance: Balance | null = null;
+// In-memory state
+let latestPositions: any = null;
+let latestBalance: any = null;
 
 // Auto-refresh every 30s
 setInterval(async () => {
   try {
-    latestPositions = await apexClient.privateApi.getUserPositions();
-    latestBalance = await apexClient.privateApi.accountBalance();
+    latestPositions = await apexClient.privateApi.positions();
+    latestBalance = await apexClient.privateApi.getAccount();
   } catch (err) {
     console.error('❌ Refresh Error:', err);
   }
 }, 30000);
 
-// REST API for frontend with typed request/response
+// REST API for frontend
 app.get('/api/positions', (req: express.Request, res: express.Response) => {
   res.json({ positions: latestPositions });
 });
@@ -112,7 +99,7 @@ app.post('/webhook', async (req: express.Request, res: express.Response) => {
 
   const orderParams = {
     symbol: symbol?.replace('USD', '-USD') || '',
-    side: side?.toUpperCase() || '',
+    side: side?.toUpperCase() as 'BUY' | 'SELL' || 'BUY',
     type: price ? 'LIMIT' : 'MARKET',
     size: size ? parseFloat(size) : 0,
     price: price ? parseFloat(price) : undefined,
@@ -131,12 +118,7 @@ app.post('/webhook', async (req: express.Request, res: express.Response) => {
       orderParams.timeInForce,
       orderParams.price,
       orderParams.clientOrderId,
-      orderParams.maxFeeRate,
-      undefined, // triggerPrice
-      orderParams.reduceOnly,
-      undefined, // trailingPercent
-      undefined, // reduceOnlyPrice
-      undefined  // tag
+      orderParams.maxFeeRate
     );
     console.log('Order Response:', orderRes);
     res.json(orderRes);
