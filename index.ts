@@ -32,14 +32,12 @@ console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
 console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 
-// Initialize ApexClient
+// Initialize ApexClient with proper ENV type
 const apexClient = new ApexClient({
   networkId: parseInt(CHAIN_ID || '42161'),
-  apiKeyCredentials: {
-    key: API_KEY || '',
-    secret: SECRET || '',
-    passphrase: PASSPHRASE || ''
-  },
+  key: API_KEY || '',
+  secret: SECRET || '',
+  passphrase: PASSPHRASE || '',
   starkKeyPair: {
     publicKey: L2KEY || '',
     privateKey: OMNI_SEED || ''
@@ -51,10 +49,10 @@ const apexClient = new ApexClient({
 // Startup checks
 (async () => {
   try {
-    const time = await apexClient.publicApi.getTime();
+    const time = await apexClient.publicApi.getServerTime();
     console.log('✅ Time Check:', time);
 
-    const positions = await apexClient.privateApi.positions();
+    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
     console.log('✅ Positions:', positions);
 
     const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
@@ -71,7 +69,7 @@ let latestBalance: any = null;
 // Auto-refresh every 30s
 setInterval(async () => {
   try {
-    latestPositions = await apexClient.privateApi.positions();
+    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' });
     latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
   } catch (err) {
     console.error('❌ Refresh Error:', err);
