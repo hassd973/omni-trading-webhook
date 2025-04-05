@@ -35,7 +35,7 @@ console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
 // Initialize ApexClient with proper ENV type
 const apexClient = new ApexClient({
   networkId: parseInt(CHAIN_ID || '42161'),
-  key: API_KEY || '', // TS2353 fixed by adding 'key' to ENV in Constant.ts
+  key: API_KEY || '', // Fixed by adding 'key' to ENV
   secret: SECRET || '',
   passphrase: PASSPHRASE || '',
   starkKeyPair: {
@@ -49,10 +49,10 @@ const apexClient = new ApexClient({
 // Startup checks
 (async () => {
   try {
-    const time = await apexClient.publicApi.getServerTime(); // TS2339 fixed by adding to PublicApi
+    const time = await apexClient.publicApi.getServerTime(); // Fixed by adding to PublicApi
     console.log('✅ Time Check:', time);
 
-    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // TS2339 fixed by adding to PrivateApi
+    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // Fixed by adding to PrivateApi
     console.log('✅ Positions:', positions);
 
     const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
@@ -69,7 +69,7 @@ let latestBalance: any = null;
 // Auto-refresh every 30s
 setInterval(async () => {
   try {
-    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // TS2339 fixed by adding to PrivateApi
+    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // Fixed by adding to PrivateApi
     latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
   } catch (err) {
     console.error('❌ Refresh Error:', err);
@@ -95,10 +95,9 @@ app.post('/webhook', async (req: express.Request, res: express.Response) => {
   };
   const clientId = uuidv4();
 
-  // TS2345 fix: Ensure side is 'BUY' or 'SELL'
   const validSide = side?.toUpperCase() === 'BUY' || side?.toUpperCase() === 'SELL'
     ? side.toUpperCase() as 'BUY' | 'SELL'
-    : 'BUY'; // Default to 'BUY' if invalid
+    : 'BUY'; // Fixed TS2345
 
   const orderParams = {
     symbol: symbol?.replace('USD', '-USD') || '',
