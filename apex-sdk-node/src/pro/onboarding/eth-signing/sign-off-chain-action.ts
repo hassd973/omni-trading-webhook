@@ -54,19 +54,18 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     signer: string,
     signingMethod: SigningMethod,
     message: M,
-    env: ENV,
+    env?: ENV, // Made env optional as it's only used in Personal2
   ): Promise<string | { value: string; l2KeyHash: string }> {
-    const walletAccount: Account | undefined =
-      this.web3.eth.accounts.wallet[signer as unknown as number];
+    const walletAccount: Account | undefined = 
+      this.web3.eth.accounts.wallet[signer as any]; // Fixed type assertion
 
     switch (signingMethod) {
       case SigningMethod.Hash:
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-
         const rawSignature = walletAccount
-          ? walletAccount.sign(hash).signature
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
           : await this.web3.eth.sign(hash, signer);
 
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
@@ -79,67 +78,68 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           return unsafeHashSig;
         }
 
-        if (this.verify(unsafeHashSig, signer, message)) {
-          return unsafeHashSig;
-        }
-        return hashSig;
+        return this.verify(unsafeHashSig, signer, message) ? unsafeHashSig : hashSig;
       }
 
-      case SigningMethod.TypedData:
-        if (walletAccount?.privateKey) {
-          const wallet = new ethers.Wallet(walletAccount.privateKey);
-          const rawSignature = await wallet._signTypedData(
-            this.getDomainData(),
-            { [this.domain]: this.actionStruct },
-            message,
-          );
-          return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
+      case SigningMethod.TypedData: {
+        if (!walletAccount?.privateKey) {
+          throw new Error('Wallet account or private key not found');
         }
-        break; // Add break to avoid fallthrough
+        const wallet = new ethers.Wallet(walletAccount.privateKey);
+        const rawSignature = await wallet._signTypedData(
+          this.getDomainData(),
+          { [this.domain]: this.actionStruct },
+          message,
+        );
+        return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
+      }
 
       case SigningMethod.MetaMask:
       case SigningMethod.MetaMaskLatest:
       case SigningMethod.CoinbaseWallet: {
-        let data = {
+        const data = {
           types: {
             EIP712Domain: EIP712_DOMAIN_STRUCT_NO_CONTRACT,
-            [this.domain]: this.actionStruct,
+            [this.domain]: [...this.actionStruct], // Create a new array to avoid mutation
           },
           domain: this.getDomainData(),
           primaryType: this.domain,
           message,
         };
-        let msg: any = message;
-        data.types[this.domain].length = 2;
+
+        // Type assertion for message with nonce
+        const msg = message as any;
         if (msg.nonce) {
           data.types[this.domain].push({ type: 'string', name: 'nonce' });
         }
 
-        const signature = await this.ethSignTypedDataInternal(signer, data, signingMethod);
-        return signature;
+        return this.ethSignTypedDataInternal(signer, data, signingMethod);
       }
 
       case SigningMethod.Personal: {
         const messageString = this.getPersonalSignMessage(message);
         return this.ethSignPersonalInternal(signer, messageString);
       }
+
       case SigningMethod.Personal2: {
+        if (!env) throw new Error('ENV is required for Personal2 signing method');
         const messageString = this.getPersonalSignMessage(message).replace('chainId', 'envId');
         return this.ethSignPersonalInternal(signer, messageString, env);
       }
 
       default:
-        throw new Error(`Invalid signing method ${signingMethod}`);
+        throw new Error(`Invalid signing method: ${signingMethod}`);
     }
   }
 
   public verify(typedSignature: string, expectedSigner: Address, message: M): boolean {
-    if (stripHexPrefix(typedSignature).length !== 66 * 2) {
+    if (stripHexPrefix(typedSignature).length !== 130) { // 66 * 2 = 132 including '0x'
       throw new Error(`Unable to verify signature with invalid length: ${typedSignature}`);
     }
 
     const sigType = parseInt(typedSignature.slice(-2), 16);
     let hashOrMessage: string;
+
     switch (sigType) {
       case SignatureTypes.NO_PREPEND:
       case SignatureTypes.DECIMAL:
@@ -152,6 +152,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       default:
         throw new Error(`Invalid signature type: ${sigType}`);
     }
+
     const signer = ecRecoverTypedSignature(hashOrMessage, typedSignature);
     return addressesAreEqual(signer, expectedSigner);
   }
@@ -171,20 +172,22 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       .replace('\n}', '')
       .replace(/"/g, '')
       .replace(/\s+/g, '')
-      .replace(/:/g, `: `)
-      .replace(/,/g, `\n`)
+      .replace(/:/g, ': ')
+      .replace(/,/g, '\n')
       .replace('L2Key', 'L2 Key')
       .replace('https: //', 'https://');
   }
 
   public getDomainHash(): string {
-    const hash: string | null = Web3.utils.soliditySha3( // Fix: 'was null' -> 'null'
-      { t: 'bytes32', v: hashString(EIP712_DOMAIN_STRING_NO_CONTRACT) },
-      { t: 'bytes32', v: hashString(this.domain) },
-      { t: 'bytes32', v: hashString(this.version) },
-      { t: 'uint256', v: new BigNumber(this.networkId).toFixed(0) },
+    const hash = Web3.utils.soliditySha3(
+      { type: 'bytes32', value: hashString(EIP712_DOMAIN_STRING_NO_CONTRACT) },
+      { type: 'bytes32', value: hashString(this.domain) },
+      { type: 'bytes32', value: hashString(this.version) },
+      { type: 'uint256', value: new BigNumber(this.networkId).toFixed(0) },
     );
-    return hash!;
+    
+    if (!hash) throw new Error('Failed to generate domain hash');
+    return hash;
   }
 
   private getDomainData() {
