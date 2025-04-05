@@ -6,7 +6,7 @@ export interface Account {
   address: string;
   privateKey: string;
 }
-// ... rest of the file unchanged
+// ... rest of the file unchanged (enums, interfaces, etc.)
 export type BigNumberable = BigNumber | string | number;
 
 export enum ApexMarket {
