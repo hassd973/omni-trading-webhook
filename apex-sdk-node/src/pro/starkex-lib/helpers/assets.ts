@@ -1,5 +1,4 @@
 import Big, { BigSource } from 'big.js';
-// ... other imports
 
 export const assetToBaseQuantumNumber = (
   asset: string,
