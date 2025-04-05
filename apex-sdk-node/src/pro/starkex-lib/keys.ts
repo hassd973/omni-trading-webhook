@@ -1,4 +1,5 @@
 import { keccak256 } from 'ethereum-cryptography/keccak';
+import BN from 'bn.js'; // Add missing BN import
 
 import { asEcKeyPair, asSimpleKeyPair } from './helpers';
 import { hexToBn, randomBuffer } from './lib/util';
@@ -18,8 +19,8 @@ export function keyPairFromData(data: Buffer): KeyPairWithYCoordinate {
   if (data.length === 0) {
     throw new Error('keyPairFromData: Empty buffer');
   }
-  const hashedData = keccak256(data);
-  const hashBN = hexToBn(hashedData.toString('hex'));
-  const privateKey = hashBN.iushrn(5).toString('hex'); // Remove the last five bits.
+  const hashedData = keccak256(Uint8Array.from(data)); // Fix: Convert Buffer to Uint8Array
+  const hashBN = hexToBn(hashedData); // Use hex string directly
+  const privateKey = hashBN.iushrn(5).toString('hex'); // Remove the last five bits
   return asSimpleKeyPair(asEcKeyPair(privateKey));
 }
