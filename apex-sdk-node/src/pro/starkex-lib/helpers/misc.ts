@@ -1,11 +1,5 @@
-/**
- * Other helper functions for converting data for Starkware.
- */
-
-import nodeCrypto from 'crypto-js';
-
+import { SHA256, enc } from 'crypto-js';
 import BN from 'bn.js';
-
 import { hexToBn, utf8ToBn } from '../lib/util';
 import {
   ORACLE_PRICE_FIELD_BIT_LENGTHS,
@@ -21,15 +15,19 @@ const ONE_HOUR_MS = 60 * 60 * ONE_SECOND_MS;
  * Generate a nonce deterministically from an arbitrary string provided by a client.
  */
 export function nonceFromClientId(clientId: string): string {
-  const hash = nodeCrypto.SHA256(clientId);
-  return hexToBn(hash.toString(nodeCrypto.enc.Hex)).mod(MAX_NONCE).toString();
+  const hash = SHA256(clientId);
+  return hexToBn(hash.toString(enc.Hex)).mod(MAX_NONCE).toString();
 }
-export function clientIdToNonce(clientId: number | string) {
-  let hash = nodeCrypto.SHA256(clientId);
-  hash = hash.toString(nodeCrypto.enc.Hex);
-  let s = hash.slice(0, 8);
-  s = hexToBn('0x' + s).toNumber();
-  return s;
+
+/**
+ * Generate a nonce from a client ID (string or number).
+ */
+export function clientIdToNonce(clientId: number | string): number {
+  const input = typeof clientId === 'number' ? clientId.toString() : clientId;
+  const hash = SHA256(input);
+  const hexHash = hash.toString(enc.Hex);
+  const slicedHex = hexHash.slice(0, 8); // Take first 8 chars for a 32-bit number
+  return hexToBn('0x' + slicedHex).toNumber();
 }
 
 /**
