@@ -62,8 +62,12 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
       '1e6',                  // Precision (adjust based on asset)
     );
 
-    // Handle quantumsAmountCollateral (use quoteAmount if available)
-    const quantumsAmountCollateral = order.quoteAmount || '0'; // Default to '0' if not provided
+    // Handle quantumsAmountCollateral (use quoteAmount if available, converted to quantum units)
+    const quantumsAmountCollateral = assetToBaseQuantumNumber(
+      order.symbol,           // Assuming collateral is same asset or adjust accordingly
+      order.quoteAmount || '0', // Default to '0' if not provided
+      '1e6',                  // Precision (adjust based on asset)
+    );
 
     // Provide defaults for asset IDs if not specified
     const assetIdSynthetic = order.assetIdSynthetic || '0x123';  // Placeholder synthetic asset ID
