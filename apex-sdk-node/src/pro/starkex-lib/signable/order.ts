@@ -27,14 +27,13 @@ const ORDER_PADDING_BITS = 17;
  * Wrapper object to convert an order, and hash, sign, and verify its signature.
  */
 export class SignableOrder extends StarkSignable<StarkwareOrder> {
-  static fromOrder = SignableOrder.fromOrderWithClientId; // Alias.
+  static fromOrder = SignableOrder.fromOrderWithClientId; // Alias
 
   static fromOrderWithClientId(
     order: OrderWithClientId | OrderWithClientIdAndQuoteAmount,
     networkId: NetworkId,
   ): SignableOrder {
-    // Make the nonce by hashing the client-provided ID.
-    const nonce = clientIdToNonce(order.clientId).toString(); // Convert to string
+    const nonce = clientIdToNonce(order.clientId).toString(); // Ensure string
     return SignableOrder.fromOrderWithNonce(
       {
         ...order,
@@ -46,41 +45,35 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
   }
 
   static fromOrderWithNonce(order: OrderWithNonce | OrderWithNonceAndQuoteAmount, networkId: NetworkId): SignableOrder {
-    const nonce = order.nonce;
+    const nonce = order.nonce; // Already string from types
     const positionId = order.positionId;
-
-    // Within the Starkware system, there is currently only one order type.
     const orderType = StarkwareOrderType.LIMIT_ORDER_WITH_FEES;
-
-    // Determine if the order is buying synthetic
     const isBuyingSynthetic = order.side === 'BUY';
 
-    // Handle quantumsAmountSynthetic with a default if amount is undefined
+    // Use humanSize or amount interchangeably, default to '0'
     const quantumsAmountSynthetic = assetToBaseQuantumNumber(
-      order.symbol,           // Asset identifier
-      order.amount || '0',    // Default to '0' if amount is missing
-      '1e6',                  // Precision (adjust based on asset)
+      order.symbol,
+      order.humanSize || order.amount || '0', // Fallback to '0'
+      '1e6',
     );
 
-    // Handle quantumsAmountCollateral (use quoteAmount if available, converted to quantum units)
+    // Use humanQuoteAmount if provided, else calculate or default
     const quantumsAmountCollateral = assetToBaseQuantumNumber(
-      order.symbol,           // Assuming collateral is same asset or adjust accordingly
-      order.quoteAmount || '0', // Default to '0' if not provided
-      '1e6',                  // Precision (adjust based on asset)
+      order.symbol,
+      order.humanQuoteAmount || order.quoteAmount || '0', // Fallback to '0'
+      '1e6',
     );
 
-    // Provide defaults for asset IDs if not specified
-    const assetIdSynthetic = order.assetIdSynthetic || '0x123';  // Placeholder synthetic asset ID
-    const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder collateral asset ID
+    // Default asset IDs if not provided
+    const assetIdSynthetic = order.assetIdSynthetic || '0x123'; // Placeholder
+    const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder
 
-    // Calculate fee amount
     const quantumsAmountFee = assetToBaseQuantumNumber(
-      order.symbol,           // Assuming fee is in the same asset as symbol
-      order.limitFee,         // Human-readable limit fee
-      '1e6',                  // Precision (adjust based on asset)
+      order.symbol,
+      order.limitFee, // Assume string, required in types
+      '1e6',
     );
 
-    // Convert timestamp to expiration in hours with buffer
     const expirationEpochHours = addOrderExpirationBufferHours(isoTimestampToEpochHours(order.expirationIsoTimestamp));
 
     return new SignableOrder(
@@ -92,7 +85,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
         quantumsAmountFee,
         assetIdSynthetic,
         assetIdCollateral,
-        assetIdFee: assetIdCollateral, // Fee assumed to be in collateral asset
+        assetIdFee: assetIdCollateral, // Fee in collateral asset
         positionId,
         isBuyingSynthetic,
         expirationEpochHours,
@@ -158,11 +151,11 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
 
     const orderPart2 = new BN(LIMIT_ORDER_WITH_FEES)
       .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-      .iadd(positionIdBn) // Repeat (1/3).
+      .iadd(positionIdBn)
       .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-      .iadd(positionIdBn) // Repeat (2/3).
+      .iadd(positionIdBn)
       .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-      .iadd(positionIdBn) // Repeat (3/3).
+      .iadd(positionIdBn)
       .iushln(ORDER_FIELD_BIT_LENGTHS.expirationEpochHours)
       .iadd(expirationEpochHours)
       .iushln(ORDER_PADDING_BITS);
