@@ -6,16 +6,12 @@ const filesToPatch = [
     path: 'apex-sdk-node/src/pro/onboarding/eth-signing/sign-off-chain-action.ts',
     fixes: [
       {
-        search: /(function \w+\()([^)]+)(\))/g,
-        replace: (match: string, p1: string, p2: string, p3: string) => {
-          if (p2.includes('signature: string | { messageHash: string')) {
-            return `${p1}${p2.replace(
-              'signature: string | { messageHash: string; r: string; s: string; v: string; message?: string; signature: string; }',
-              'signature: string'
-            )}${p3}`;
-          }
-          return match;
-        }
+        search: /(function \w+\()([^)]*signature: string \| \{ messageHash: string[^}]*\})([^)]*\))/g,
+        replace: '$1$2: string$3'
+      },
+      {
+        search: /(\.\w+\()([^)]*signature: string \| \{ messageHash: string[^}]*\})([^)]*\))/g,
+        replace: '$1$2: string$3'
       }
     ]
   },
@@ -25,6 +21,10 @@ const filesToPatch = [
       {
         search: /amount: number/g,
         replace: 'amount: string'
+      },
+      {
+        search: /number \| string/g,
+        replace: 'string'
       }
     ]
   },
@@ -60,14 +60,16 @@ const filesToPatch = [
 function patchFiles() {
   filesToPatch.forEach(({ path, fixes }) => {
     const fullPath = join(process.cwd(), path);
-    let content = readFileSync(fullPath, 'utf8');
-    
-    fixes.forEach(({ search, replace }) => {
-      content = content.replace(search, replace);
-    });
-    
-    writeFileSync(fullPath, content);
-    console.log(`✅ Patched ${path}`);
+    try {
+      let content = readFileSync(fullPath, 'utf8');
+      fixes.forEach(({ search, replace }) => {
+        content = content.replace(search, replace);
+      });
+      writeFileSync(fullPath, content);
+      console.log(`✅ Successfully patched ${path}`);
+    } catch (err) {
+      console.error(`❌ Failed to patch ${path}:`, err);
+    }
   });
 }
 
