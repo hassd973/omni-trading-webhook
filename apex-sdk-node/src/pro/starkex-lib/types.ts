@@ -117,19 +117,28 @@ interface OrderParamsBase {
   expirationIsoTimestamp: string;
 }
 export interface WithPrice {
-  humanPrice: string;
+  humanPrice?: string; // Optional
   humanQuoteAmount?: undefined;
 }
 export interface WithQuoteAmount {
   humanPrice?: undefined;
-  humanQuoteAmount: string;
+  humanQuoteAmount?: string; // Optional
 }
 export type OrderWithClientId = OrderParamsBase & WithPrice & WithClientId;
-export type OrderWithNonce = OrderParamsBase & WithPrice & WithNonce;
+export type OrderWithNonce = OrderParamsBase & WithPrice & WithNonce & {
+  amount?: string; // Optional, alias for humanSize
+  assetIdSynthetic?: string; // Optional
+  assetIdCollateral?: string; // Optional
+};
 
 // FOR INTERNAL USE. Not recommended for external users.
 export type OrderWithClientIdAndQuoteAmount = OrderParamsBase & WithQuoteAmount & WithClientId;
-export type OrderWithNonceAndQuoteAmount = OrderParamsBase & WithQuoteAmount & WithNonce;
+export type OrderWithNonceAndQuoteAmount = OrderParamsBase & WithQuoteAmount & WithNonce & {
+  amount?: string; // Optional
+  quoteAmount?: string; // Optional, alias for humanQuoteAmount
+  assetIdSynthetic?: string; // Optional
+  assetIdCollateral?: string; // Optional
+};
 
 export interface StarkwareAmounts {
   quantumsAmountSynthetic: string;
