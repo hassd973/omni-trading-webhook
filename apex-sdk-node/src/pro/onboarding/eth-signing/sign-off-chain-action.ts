@@ -54,10 +54,10 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     signer: string,
     signingMethod: SigningMethod,
     message: M,
-    env?: ENV, // Made env optional as it's only used in Personal2
+    env?: ENV, // Optional, only used in Personal2
   ): Promise<string | { value: string; l2KeyHash: string }> {
-    const walletAccount: Account | undefined = 
-      this.web3.eth.accounts.wallet[signer as any]; // Fixed type assertion
+    const walletAccount: Account | undefined =
+      this.web3.eth.accounts.wallet[signer as any]; // Type assertion for wallet index
 
     switch (signingMethod) {
       case SigningMethod.Hash:
@@ -83,7 +83,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
 
       case SigningMethod.TypedData: {
         if (!walletAccount?.privateKey) {
-          throw new Error('Wallet account or private key not found');
+          throw new Error('Wallet account or private key not found for TypedData signing');
         }
         const wallet = new ethers.Wallet(walletAccount.privateKey);
         const rawSignature = await wallet._signTypedData(
@@ -100,14 +100,13 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         const data = {
           types: {
             EIP712Domain: EIP712_DOMAIN_STRUCT_NO_CONTRACT,
-            [this.domain]: [...this.actionStruct], // Create a new array to avoid mutation
+            [this.domain]: [...this.actionStruct], // Avoid mutation
           },
           domain: this.getDomainData(),
           primaryType: this.domain,
           message,
         };
 
-        // Type assertion for message with nonce
         const msg = message as any;
         if (msg.nonce) {
           data.types[this.domain].push({ type: 'string', name: 'nonce' });
@@ -133,8 +132,8 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
   }
 
   public verify(typedSignature: string, expectedSigner: Address, message: M): boolean {
-    if (stripHexPrefix(typedSignature).length !== 130) { // 66 * 2 = 132 including '0x'
-      throw new Error(`Unable to verify signature with invalid length: ${typedSignature}`);
+    if (stripHexPrefix(typedSignature).length !== 130) { // 65*2 = 130 (v,r,s without 0x)
+      throw new Error(`Invalid signature length: ${typedSignature}, expected 130 hex chars`);
     }
 
     const sigType = parseInt(typedSignature.slice(-2), 16);
@@ -185,7 +184,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       { type: 'bytes32', value: hashString(this.version) },
       { type: 'uint256', value: new BigNumber(this.networkId).toFixed(0) },
     );
-    
+
     if (!hash) throw new Error('Failed to generate domain hash');
     return hash;
   }
