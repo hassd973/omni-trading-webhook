@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.OrderRecordType = exports.OrderStatus = exports.TimeInForce = exports.OrderType = exports.OrderSide = exports.PositionStatus = exports.LeaguesExpectedOutcome = exports.LeaderboardPnlPeriod = exports.AccountLeaderboardPnlPeriod = exports.SideAction = exports.AccountAction = exports.RequestMethod = exports.SignatureTypes = exports.SigningMethod = exports.TransferAsset = exports.ApexAsset = exports.ApexMarket = void 0;
-var ApexMarket;
+export var ApexMarket;
 (function (ApexMarket) {
     ApexMarket["BTC_USDT"] = "BTC-USDT";
     ApexMarket["BTC_USDC"] = "BTC-USDC";
@@ -40,8 +37,8 @@ var ApexMarket;
     ApexMarket["TRX_USD"] = "TRX-USD";
     ApexMarket["XTZ_USD"] = "XTZ-USD";
     ApexMarket["HNT_USD"] = "HNT-USD";
-})(ApexMarket || (exports.ApexMarket = ApexMarket = {}));
-var ApexAsset;
+})(ApexMarket || (ApexMarket = {}));
+export var ApexAsset;
 (function (ApexAsset) {
     ApexAsset["USDC"] = "USDC";
     ApexAsset["USDT"] = "USDT";
@@ -79,13 +76,13 @@ var ApexAsset;
     ApexAsset["TRX"] = "TRX";
     ApexAsset["XTZ"] = "XTZ";
     ApexAsset["HNT"] = "HNT";
-})(ApexAsset || (exports.ApexAsset = ApexAsset = {}));
-var TransferAsset;
+})(ApexAsset || (ApexAsset = {}));
+export var TransferAsset;
 (function (TransferAsset) {
     TransferAsset["USDC"] = "USDC";
     TransferAsset["USDT"] = "USDT";
-})(TransferAsset || (exports.TransferAsset = TransferAsset = {}));
-var SigningMethod;
+})(TransferAsset || (TransferAsset = {}));
+export var SigningMethod;
 (function (SigningMethod) {
     SigningMethod["Compatibility"] = "Compatibility";
     SigningMethod["UnsafeHash"] = "UnsafeHash";
@@ -96,36 +93,32 @@ var SigningMethod;
     SigningMethod["CoinbaseWallet"] = "CoinbaseWallet";
     SigningMethod["Personal"] = "Personal";
     SigningMethod["Personal2"] = "Personal2";
-})(SigningMethod || (exports.SigningMethod = SigningMethod = {}));
-var SignatureTypes;
+})(SigningMethod || (SigningMethod = {}));
+export var SignatureTypes;
 (function (SignatureTypes) {
     SignatureTypes[SignatureTypes["NO_PREPEND"] = 0] = "NO_PREPEND";
     SignatureTypes[SignatureTypes["DECIMAL"] = 1] = "DECIMAL";
     SignatureTypes[SignatureTypes["HEXADECIMAL"] = 2] = "HEXADECIMAL";
     SignatureTypes[SignatureTypes["PERSONAL"] = 3] = "PERSONAL";
-})(SignatureTypes || (exports.SignatureTypes = SignatureTypes = {}));
-var RequestMethod;
+})(SignatureTypes || (SignatureTypes = {}));
+export var RequestMethod;
 (function (RequestMethod) {
     RequestMethod["POST"] = "POST";
     RequestMethod["PUT"] = "PUT";
     RequestMethod["GET"] = "GET";
     RequestMethod["DELETE"] = "DELETE";
-})(RequestMethod || (exports.RequestMethod = RequestMethod = {}));
-var AccountAction;
+})(RequestMethod || (RequestMethod = {}));
+export var AccountAction;
 (function (AccountAction) {
     AccountAction["DEPOSIT"] = "DEPOSIT";
     AccountAction["WITHDRAWAL"] = "WITHDRAWAL";
-})(AccountAction || (exports.AccountAction = AccountAction = {}));
-/**
- * @param LONG
- * @param SHORT
- * */
-var SideAction;
+})(AccountAction || (AccountAction = {}));
+export var SideAction;
 (function (SideAction) {
     SideAction["LONG"] = "LONG";
     SideAction["SHORT"] = "SHORT";
-})(SideAction || (exports.SideAction = SideAction = {}));
-var AccountLeaderboardPnlPeriod;
+})(SideAction || (SideAction = {}));
+export var AccountLeaderboardPnlPeriod;
 (function (AccountLeaderboardPnlPeriod) {
     AccountLeaderboardPnlPeriod["DAILY"] = "DAILY";
     AccountLeaderboardPnlPeriod["WEEKLY"] = "WEEKLY";
@@ -134,8 +127,8 @@ var AccountLeaderboardPnlPeriod;
     AccountLeaderboardPnlPeriod["COMPETITION"] = "COMPETITION";
     AccountLeaderboardPnlPeriod["DAILY_COMPETITION"] = "DAILY_COMPETITION";
     AccountLeaderboardPnlPeriod["LEAGUES"] = "LEAGUES";
-})(AccountLeaderboardPnlPeriod || (exports.AccountLeaderboardPnlPeriod = AccountLeaderboardPnlPeriod = {}));
-var LeaderboardPnlPeriod;
+})(AccountLeaderboardPnlPeriod || (AccountLeaderboardPnlPeriod = {}));
+export var LeaderboardPnlPeriod;
 (function (LeaderboardPnlPeriod) {
     LeaderboardPnlPeriod["DAILY"] = "DAILY";
     LeaderboardPnlPeriod["WEEKLY"] = "WEEKLY";
@@ -148,48 +141,47 @@ var LeaderboardPnlPeriod;
     LeaderboardPnlPeriod["GOLD"] = "GOLD";
     LeaderboardPnlPeriod["PLATINUM"] = "PLATINUM";
     LeaderboardPnlPeriod["DIAMOND"] = "DIAMOND";
-})(LeaderboardPnlPeriod || (exports.LeaderboardPnlPeriod = LeaderboardPnlPeriod = {}));
-var LeaguesExpectedOutcome;
+})(LeaderboardPnlPeriod || (LeaderboardPnlPeriod = {}));
+export var LeaguesExpectedOutcome;
 (function (LeaguesExpectedOutcome) {
     LeaguesExpectedOutcome["PROMOTION"] = "PROMOTION";
     LeaguesExpectedOutcome["DEMOTION"] = "DEMOTION";
     LeaguesExpectedOutcome["SAME_LEAGUE"] = "SAME_LEAGUE";
-    // deprecated.
     LeaguesExpectedOutcome["RELEGATION"] = "RELEGATION";
-})(LeaguesExpectedOutcome || (exports.LeaguesExpectedOutcome = LeaguesExpectedOutcome = {}));
-var PositionStatus;
+})(LeaguesExpectedOutcome || (LeaguesExpectedOutcome = {}));
+export var PositionStatus;
 (function (PositionStatus) {
     PositionStatus["OPEN"] = "OPEN";
     PositionStatus["CLOSED"] = "CLOSED";
     PositionStatus["LIQUIDATED"] = "LIQUIDATED";
-})(PositionStatus || (exports.PositionStatus = PositionStatus = {}));
-var OrderSide;
+})(PositionStatus || (PositionStatus = {}));
+export var OrderSide;
 (function (OrderSide) {
     OrderSide["BUY"] = "BUY";
     OrderSide["SELL"] = "SELL";
-})(OrderSide || (exports.OrderSide = OrderSide = {}));
-var OrderType;
+})(OrderSide || (OrderSide = {}));
+export var OrderType;
 (function (OrderType) {
     OrderType["LIMIT_ORDER_WITH_FEES"] = "LIMIT_ORDER_WITH_FEES";
-})(OrderType || (exports.OrderType = OrderType = {}));
-var TimeInForce;
+})(OrderType || (OrderType = {}));
+export var TimeInForce;
 (function (TimeInForce) {
     TimeInForce["GTT"] = "GTT";
     TimeInForce["FOK"] = "FOK";
     TimeInForce["IOC"] = "IOC";
-})(TimeInForce || (exports.TimeInForce = TimeInForce = {}));
-var OrderStatus;
+})(TimeInForce || (TimeInForce = {}));
+export var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "PENDING";
     OrderStatus["OPEN"] = "OPEN";
     OrderStatus["FILLED"] = "FILLED";
     OrderStatus["CANCELED"] = "CANCELED";
     OrderStatus["UNTRIGGERED"] = "UNTRIGGERED";
-})(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
-var OrderRecordType;
+})(OrderStatus || (OrderStatus = {}));
+export var OrderRecordType;
 (function (OrderRecordType) {
     OrderRecordType["OPEN"] = "openOrders";
     OrderRecordType["HISTORY"] = "historyOrders";
     OrderRecordType["FILLS"] = "fills";
     OrderRecordType["PNL"] = "historicalPNL";
-})(OrderRecordType || (exports.OrderRecordType = OrderRecordType = {}));
+})(OrderRecordType || (OrderRecordType = {}));

@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.proUser = exports.omniUser = void 0;
-exports.omniUser = {
+export const omniUser = {
     seed: ' your seed ',
     accountId: ' your accountId ',
     key: ' your key ',
     passphrase: ' your passphrase ',
     secret: ' your secret '
 };
-exports.proUser = {
+export const proUser = {
     accountId: ' your accountId ',
     key: ' your key ',
     passphrase: ' your passphrase ',

@@ -1,32 +1,12 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.hashInWorkerThread = exports.SignableWithdrawal = exports.SignableTransfer = exports.StarkSignable = exports.SignableOrder = exports.SignableOraclePrice = exports.preComputeHashes = exports.SignableConditionalTransfer = void 0;
-exports.genSimplifyOnBoardingSignature = genSimplifyOnBoardingSignature;
-const helpers_1 = require("../helpers");
-const lib_1 = require("../lib");
-var conditional_transfer_1 = require("./conditional-transfer");
-Object.defineProperty(exports, "SignableConditionalTransfer", { enumerable: true, get: function () { return conditional_transfer_1.SignableConditionalTransfer; } });
-var hashes_1 = require("./hashes");
-Object.defineProperty(exports, "preComputeHashes", { enumerable: true, get: function () { return hashes_1.preComputeHashes; } });
-var oracle_price_1 = require("./oracle-price");
-Object.defineProperty(exports, "SignableOraclePrice", { enumerable: true, get: function () { return oracle_price_1.SignableOraclePrice; } });
-var order_1 = require("./order");
-Object.defineProperty(exports, "SignableOrder", { enumerable: true, get: function () { return order_1.SignableOrder; } });
-var stark_signable_1 = require("./stark-signable");
-Object.defineProperty(exports, "StarkSignable", { enumerable: true, get: function () { return stark_signable_1.StarkSignable; } });
-var transfer_1 = require("./transfer");
-Object.defineProperty(exports, "SignableTransfer", { enumerable: true, get: function () { return transfer_1.SignableTransfer; } });
-var withdrawal_1 = require("./withdrawal");
-Object.defineProperty(exports, "SignableWithdrawal", { enumerable: true, get: function () { return withdrawal_1.SignableWithdrawal; } });
+import { asEcKeyPair, serializeSignature, asSimpleSignature } from '../helpers';
+import { sign } from '../lib';
+export { SignableConditionalTransfer } from './conditional-transfer';
+export { preComputeHashes } from './hashes';
+export { SignableOraclePrice } from './oracle-price';
+export { SignableOrder } from './order';
+export { StarkSignable } from './stark-signable';
+export { SignableTransfer } from './transfer';
+export { SignableWithdrawal } from './withdrawal';
 let maybeHashInWorkerThread = (_a, _b) => {
     throw new Error('Cannot use hashInWorkerThread() since worker_threads is not available');
 };
@@ -41,11 +21,9 @@ try {
 catch (error) {
     // eslint: Intentionally empty.
 }
-exports.hashInWorkerThread = maybeHashInWorkerThread;
+export const hashInWorkerThread = maybeHashInWorkerThread;
 // 简化钱包链接，生成签名
-function genSimplifyOnBoardingSignature(privateKey, apikeyHash) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const ecSignature = yield (0, lib_1.sign)((0, helpers_1.asEcKeyPair)(privateKey), apikeyHash);
-        return (0, helpers_1.serializeSignature)((0, helpers_1.asSimpleSignature)(ecSignature));
-    });
+export async function genSimplifyOnBoardingSignature(privateKey, apikeyHash) {
+    const ecSignature = await sign(asEcKeyPair(privateKey), apikeyHash);
+    return serializeSignature(asSimpleSignature(ecSignature));
 }

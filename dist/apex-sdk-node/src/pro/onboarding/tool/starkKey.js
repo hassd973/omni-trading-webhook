@@ -1,96 +1,84 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.genNonce = exports.genStarkKey = exports.simplifyOnboarding = exports.basicOnboarding = void 0;
-const axios_1 = __importDefault(require("axios"));
-const crypto_js_1 = __importDefault(require("crypto-js"));
+import axios from 'axios';
+import cryptojs from 'crypto-js';
 // import queryString from 'query-string';
-const bn_js_1 = __importDefault(require("bn.js"));
-const starkex_lib_1 = require("../../starkex-lib");
-const constants_1 = require("../constants");
-const eth_signing_1 = require("../eth-signing");
-const interface_1 = require("../interface");
-const __1 = require("..");
-const qs_1 = __importDefault(require("qs"));
+import BN from 'bn.js';
+import { genSimplifyOnBoardingSignature, keyPairFromData, stripHexPrefix } from '../../starkex-lib';
+import { genStarkKeyMessage } from '../constants';
+import { SignOnboardingAction } from '../eth-signing';
+import { SigningMethod } from '../interface';
+import { web3 } from '..';
+import QueryString from 'qs';
 const KEY_DERIVATION_SUPPORTED_SIGNING_METHODS = [
-    interface_1.SigningMethod.TypedData,
-    interface_1.SigningMethod.MetaMask,
-    interface_1.SigningMethod.MetaMaskLatest,
-    interface_1.SigningMethod.CoinbaseWallet,
-    interface_1.SigningMethod.Personal,
+    SigningMethod.TypedData,
+    SigningMethod.MetaMask,
+    SigningMethod.MetaMaskLatest,
+    SigningMethod.CoinbaseWallet,
+    SigningMethod.Personal,
 ];
-const genStarkKey = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (signingMethod = interface_1.SigningMethod.TypedData, account, env
+const genStarkKey = async (signingMethod = SigningMethod.TypedData, account, env
 // registerChainId: number,
-) {
+) => {
     if (!account) {
         throw new Error('Invalid Account');
     }
-    const signer = new eth_signing_1.SignOnboardingAction(__1.web3, env.registerChainId);
-    const sig = yield signer.sign(account, signingMethod, constants_1.genStarkKeyMessage, env);
+    const signer = new SignOnboardingAction(web3, env.registerChainId);
+    const sig = await signer.sign(account, signingMethod, genStarkKeyMessage, env);
     const signature = typeof sig === 'string' ? sig : sig.value;
     const l2KeyHash = typeof sig === 'string' ? '' : sig.l2KeyHash;
-    const keyPair = (0, starkex_lib_1.keyPairFromData)(Buffer.from((0, starkex_lib_1.stripHexPrefix)(signature), 'hex'));
+    const keyPair = keyPairFromData(Buffer.from(stripHexPrefix(signature), 'hex'));
     return { key: keyPair, l2KeyHash, signer };
-});
-exports.genStarkKey = genStarkKey;
-const genNonce = (address_1, publicKey_1, env_1, ...args_1) => __awaiter(void 0, [address_1, publicKey_1, env_1, ...args_1], void 0, function* (address, publicKey, env, params = {}) {
-    const qrs = "?" + qs_1.default.stringify(Object.assign({ ethAddress: address, starkKey: publicKey, chainId: params.chainId }, params));
-    const res = yield axios_1.default.post(`${env.url}/api/v1/generate-nonce${qrs}`, {}, {
+};
+const genNonce = async (address, publicKey, env, params = {}) => {
+    const qrs = "?" + QueryString.stringify({
+        ethAddress: address,
+        starkKey: publicKey,
+        chainId: params.chainId,
+        ...params,
+    });
+    const res = await axios.post(`${env.url}/api/v1/generate-nonce${qrs}`, {}, {
         headers: {
             'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8"
         }
     });
     return res.data;
-});
-exports.genNonce = genNonce;
-const genNewSignature = (_a) => __awaiter(void 0, [_a], void 0, function* ({ account, privateKey, publicKey, nonce, }) {
-    const signHash = crypto_js_1.default.SHA256(`${publicKey}${account}${nonce}`.toLowerCase());
+};
+const genNewSignature = async ({ account, privateKey, publicKey, nonce, }) => {
+    const signHash = cryptojs.SHA256(`${publicKey}${account}${nonce}`.toLowerCase());
     // console.log('=======================');
     // console.log('source: ', (`${this.keyPair.publicKey}${this.account}${nonce}`).toLowerCase())
     // console.log('to: ', signHash.toString())
     // console.log('=======================');
     const EC_ORDER = '3618502788666131213697322783095070105526743751716087489154079457884512865583';
-    const bn1 = new bn_js_1.default(signHash.toString(), 16);
-    const bn2 = new bn_js_1.default(EC_ORDER, 10);
+    const bn1 = new BN(signHash.toString(), 16);
+    const bn2 = new BN(EC_ORDER, 10);
     const apiKeyHash = `${bn1.toString(16)}|${bn1.mod(bn2).toString(16)}`;
-    const signature = yield (0, starkex_lib_1.genSimplifyOnBoardingSignature)(privateKey, bn1.mod(bn2));
+    const signature = await genSimplifyOnBoardingSignature(privateKey, bn1.mod(bn2));
     return {
         apiKeyHash,
         simplifySignature: signature,
     };
-});
-const basicOnboarding = (env_1, nonce_1, ...args_1) => __awaiter(void 0, [env_1, nonce_1, ...args_1], void 0, function* (env, nonce, signingMethod = interface_1.SigningMethod.TypedData, account, keyPair, token) {
+};
+const basicOnboarding = async (env, nonce, signingMethod = SigningMethod.TypedData, account, keyPair, token) => {
     if (!account) {
         throw new Error('请先链接钱包');
     }
     if (!KEY_DERIVATION_SUPPORTED_SIGNING_METHODS.includes(signingMethod)) {
         throw new Error('Unsupported signing method for API key derivation');
     }
-    const signer = new eth_signing_1.SignOnboardingAction(__1.web3, env.registerChainId);
+    const signer = new SignOnboardingAction(web3, env.registerChainId);
     const message = {
         action: 'ApeX Onboarding',
         onlySignOn: 'https://pro.apex.exchange',
         nonce: nonce,
     };
-    const signature = yield signer.sign(account, signingMethod, message, env);
-    const qrs = "?" + qs_1.default.stringify({
+    const signature = await signer.sign(account, signingMethod, message, env);
+    const qrs = "?" + QueryString.stringify({
         starkKey: keyPair.publicKey,
         starkKeyYCoordinate: keyPair.publicKeyYCoordinate,
         ethereumAddress: account,
         token: token || 'USDC',
     });
-    const res = yield axios_1.default.post(`${env.url}/api/v2/onboarding${qrs}`, {}, {
+    const res = await axios.post(`${env.url}/api/v2/onboarding${qrs}`, {}, {
         headers: {
             'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
             'APEX-SIGNATURE': typeof signature === 'string' ? signature : signature.value,
@@ -98,9 +86,8 @@ const basicOnboarding = (env_1, nonce_1, ...args_1) => __awaiter(void 0, [env_1,
         }
     });
     return res;
-});
-exports.basicOnboarding = basicOnboarding;
-const simplifyOnboarding = (env_1, nonce_1, ...args_1) => __awaiter(void 0, [env_1, nonce_1, ...args_1], void 0, function* (env, nonce, signingMethod = interface_1.SigningMethod.TypedData, account, keyPair, token) {
+};
+const simplifyOnboarding = async (env, nonce, signingMethod = SigningMethod.TypedData, account, keyPair, token) => {
     if (!account) {
         throw new Error('请先链接钱包');
     }
@@ -108,19 +95,19 @@ const simplifyOnboarding = (env_1, nonce_1, ...args_1) => __awaiter(void 0, [env
         throw new Error('Unsupported signing method for API key derivation');
     }
     const { privateKey, publicKey } = keyPair;
-    const { apiKeyHash, simplifySignature } = yield genNewSignature({
+    const { apiKeyHash, simplifySignature } = await genNewSignature({
         account: account,
         privateKey,
         publicKey,
         nonce,
     });
-    const qrs = "?" + qs_1.default.stringify({
+    const qrs = "?" + QueryString.stringify({
         starkKey: keyPair.publicKey,
         starkKeyYCoordinate: keyPair.publicKeyYCoordinate,
         ethereumAddress: account,
         token: token || 'USDC',
     });
-    const res = yield axios_1.default.post(`${env.url}/api/v2/onboarding${qrs}`, {}, {
+    const res = await axios.post(`${env.url}/api/v2/onboarding${qrs}`, {}, {
         headers: {
             'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
             'APEX-SIGNATURE': simplifySignature,
@@ -128,5 +115,5 @@ const simplifyOnboarding = (env_1, nonce_1, ...args_1) => __awaiter(void 0, [env
         }
     });
     return res;
-});
-exports.simplifyOnboarding = simplifyOnboarding;
+};
+export { basicOnboarding, simplifyOnboarding, genStarkKey, genNonce };

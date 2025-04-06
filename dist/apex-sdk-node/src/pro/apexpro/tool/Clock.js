@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Clock = void 0;
-class Clock {
+export class Clock {
     constructor(timestampAdjustment) {
         this._timestampAdjustment = timestampAdjustment || 0;
     }
@@ -28,4 +25,3 @@ class Clock {
         return new Date(Number(timestamp) + Number(this._timestampAdjustment)).toUTCString();
     }
 }
-exports.Clock = Clock;

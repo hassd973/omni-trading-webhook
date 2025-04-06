@@ -1,4 +1,3 @@
-"use strict";
 /////////////////////////////////////////////////////////////////////////////////
 // Copyright 2019 StarkWare Industries Ltd.                                    //
 //                                                                             //
@@ -14,14 +13,6 @@
 // See the License for the specific language governing permissions             //
 // and limitations under the License.                                          //
 /////////////////////////////////////////////////////////////////////////////////
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.starkEc = void 0;
-exports.pedersen = pedersen;
-exports.sign = sign;
-exports.verify = verify;
 /**
  * Starkware crypto functions implemented in JS.
  *
@@ -30,34 +21,34 @@ exports.verify = verify;
  *
  * Changes made by dYdX for types and error messages.
  */
-const bn_js_1 = __importDefault(require("bn.js"));
-const elliptic_1 = require("elliptic");
-const _256_1 = __importDefault(require("hash.js/lib/hash/sha/256"));
-const constant_points_1 = require("./constant-points");
+import BN from 'bn.js';
+import { curves as eCurves, ec as EllipticCurve } from 'elliptic';
+import sha256 from 'hash.js/lib/hash/sha/256';
+import { constantPointsHex } from './constant-points';
 // Constants.
-const zeroBn = new bn_js_1.default(0);
-const oneBn = new bn_js_1.default(1);
-const maxEcdsaVal = new bn_js_1.default('800000000000000000000000000000000000000000000000000000000000000', 16);
-const prime = new bn_js_1.default('800000000000011000000000000000000000000000000000000000000000001', 16);
-exports.starkEc = new elliptic_1.ec(new elliptic_1.curves.PresetCurve({
+const zeroBn = new BN(0);
+const oneBn = new BN(1);
+const maxEcdsaVal = new BN('800000000000000000000000000000000000000000000000000000000000000', 16);
+const prime = new BN('800000000000011000000000000000000000000000000000000000000000001', 16);
+export const starkEc = new EllipticCurve(new eCurves.PresetCurve({
     type: 'short',
     prime: null,
     p: prime.toString(16),
     a: '00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001',
     b: '06f21413 efbe40de 150e596d 72f7a8c5 609ad26c 15c915c1 f4cdfcb9 9cee9e89',
     n: '08000000 00000010 ffffffff ffffffff b781126d cae7b232 1e66a241 adc64d2f',
-    hash: _256_1.default,
+    hash: sha256,
     gRed: false,
-    g: constant_points_1.constantPointsHex[1],
+    g: constantPointsHex[1],
 }));
-const constantPoints = constant_points_1.constantPointsHex.map((coords) => {
-    return exports.starkEc.curve.point(new bn_js_1.default(coords[0], 16), new bn_js_1.default(coords[1], 16));
+const constantPoints = constantPointsHex.map((coords) => {
+    return starkEc.curve.point(new BN(coords[0], 16), new BN(coords[1], 16));
 });
 const shiftPoint = constantPoints[0];
 /**
  * Compute the pedersen hash of two inputs.
  */
-function pedersen(...input) {
+export function pedersen(...input) {
     let point = shiftPoint;
     for (let i = 0; i < input.length; i++) {
         let x = input[i];
@@ -78,28 +69,28 @@ function pedersen(...input) {
     }
     return point.getX();
 }
-function sign(ecKeyPair, messageHash) {
+export function sign(ecKeyPair, messageHash) {
     if (!bnInRange(messageHash, zeroBn, maxEcdsaVal)) {
         throw new Error('Message cannot be signed since it exceeds the max length');
     }
     const signature = ecKeyPair.sign(fixHashLength(messageHash));
     const { r, s } = signature;
-    const w = s.invm(exports.starkEc.n);
-    if (!bnInRange(r, oneBn, maxEcdsaVal) || !bnInRange(s, oneBn, exports.starkEc.n) || !bnInRange(w, oneBn, maxEcdsaVal)) {
+    const w = s.invm(starkEc.n);
+    if (!bnInRange(r, oneBn, maxEcdsaVal) || !bnInRange(s, oneBn, starkEc.n) || !bnInRange(w, oneBn, maxEcdsaVal)) {
         throw new Error('Sanity check failed: an invalid signature was produced');
     }
     return signature;
 }
-function verify(publicKey, messageHash, signature) {
+export function verify(publicKey, messageHash, signature) {
     if (!bnInRange(messageHash, zeroBn, maxEcdsaVal)) {
         throw new Error('Message cannot be signed since it exceeds the max length');
     }
     const { r, s } = signature;
-    const w = new bn_js_1.default(s, 16).invm(exports.starkEc.n);
-    if (!bnInRange(new bn_js_1.default(r, 16), oneBn, maxEcdsaVal)) {
+    const w = new BN(s, 16).invm(starkEc.n);
+    if (!bnInRange(new BN(r, 16), oneBn, maxEcdsaVal)) {
         throw new Error('Signature has invalid r');
     }
-    if (!bnInRange(new bn_js_1.default(s, 16), oneBn, exports.starkEc.n)) {
+    if (!bnInRange(new BN(s, 16), oneBn, starkEc.n)) {
         throw new Error('Signature has invalid s');
     }
     if (!bnInRange(w, oneBn, maxEcdsaVal)) {

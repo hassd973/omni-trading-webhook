@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConfigV2 = exports.setConfigV2 = exports.getCurrencyV2 = exports.setCurrencyV2 = exports.getSymbolsV2 = exports.setSymbolsV2 = exports.getConfig = exports.setConfig = exports.getCurrency = exports.setCurrency = exports.getSymbols = exports.setSymbols = exports.getPerpetual = exports.setPerpetual = exports.getUSDTCurrency = exports.setUSDTCurrency = exports.getUSDCCurrency = exports.setUSDCCurrency = exports.getUSDTConfig = exports.setUSDTConfig = exports.getUSDCConfig = exports.setUSDCConfig = exports.WalletWay = exports.OrderSide = exports.ApexAsset = void 0;
-var ApexAsset;
+export var ApexAsset;
 (function (ApexAsset) {
     ApexAsset["USDC"] = "USDC";
     ApexAsset["USDT"] = "USDT";
@@ -39,129 +36,106 @@ var ApexAsset;
     ApexAsset["TRX"] = "TRX";
     ApexAsset["XTZ"] = "XTZ";
     ApexAsset["HNT"] = "HNT";
-})(ApexAsset || (exports.ApexAsset = ApexAsset = {}));
-var OrderSide;
+})(ApexAsset || (ApexAsset = {}));
+export var OrderSide;
 (function (OrderSide) {
     OrderSide["BUY"] = "BUY";
     OrderSide["SELL"] = "SELL";
-})(OrderSide || (exports.OrderSide = OrderSide = {}));
-var WalletWay;
+})(OrderSide || (OrderSide = {}));
+export var WalletWay;
 (function (WalletWay) {
     WalletWay["MetaMask"] = "injected";
     WalletWay["CoinbaseWallet"] = "coinbaseWallet";
     WalletWay["Walletconnect"] = "walletConnect";
-})(WalletWay || (exports.WalletWay = WalletWay = {}));
+})(WalletWay || (WalletWay = {}));
 // V1
 // 币对信息
 let symbols = [];
 const setSymbols = (data) => {
     symbols = data;
 };
-exports.setSymbols = setSymbols;
 const getSymbols = () => {
     return symbols;
 };
-exports.getSymbols = getSymbols;
 // 价值信息
 let currency = [];
 const setCurrency = (data) => {
     currency = data;
 };
-exports.setCurrency = setCurrency;
 const getCurrency = () => {
     return currency;
 };
-exports.getCurrency = getCurrency;
 // config
 let config = {};
 const setConfig = (data) => {
     config = data;
 };
-exports.setConfig = setConfig;
 const getConfig = () => {
     return config;
 };
-exports.getConfig = getConfig;
 // V2
 // 合约对信息
 let perpetual = '';
 const setPerpetual = (data) => {
     perpetual = data;
 };
-exports.setPerpetual = setPerpetual;
 const getPerpetual = () => {
     return perpetual;
 };
-exports.getPerpetual = getPerpetual;
 // 币对信息
 let symbolsV2 = [];
 const setSymbolsV2 = (data) => {
     symbols = data;
 };
-exports.setSymbolsV2 = setSymbolsV2;
 const getSymbolsV2 = () => {
     return symbols;
 };
-exports.getSymbolsV2 = getSymbolsV2;
 // 价值信息
 let currencyV2 = { usdc: [], usdt: [] };
 const setUSDCCurrency = (data) => {
     currencyV2.usdc = data;
 };
-exports.setUSDCCurrency = setUSDCCurrency;
 const getUSDCCurrency = () => {
-    return currencyV2 === null || currencyV2 === void 0 ? void 0 : currencyV2.usdc;
+    return currencyV2?.usdc;
 };
-exports.getUSDCCurrency = getUSDCCurrency;
 const setUSDTCurrency = (data) => {
     currencyV2.usdt = data;
 };
-exports.setUSDTCurrency = setUSDTCurrency;
 const getUSDTCurrency = () => {
-    return currencyV2 === null || currencyV2 === void 0 ? void 0 : currencyV2.usdt;
+    return currencyV2?.usdt;
 };
-exports.getUSDTCurrency = getUSDTCurrency;
 const setCurrencyV2 = (data) => {
     currencyV2 = data;
 };
-exports.setCurrencyV2 = setCurrencyV2;
 const getCurrencyV2 = () => {
-    var _a, _b;
-    const currentPerpetual = (_b = (_a = getPerpetual()) === null || _a === void 0 ? void 0 : _a.toLowerCase) === null || _b === void 0 ? void 0 : _b.call(_a);
+    const currentPerpetual = getPerpetual()?.toLowerCase?.();
     if (currentPerpetual) {
-        return currencyV2 === null || currencyV2 === void 0 ? void 0 : currencyV2[currentPerpetual];
+        return currencyV2?.[currentPerpetual];
     }
     return currencyV2;
 };
-exports.getCurrencyV2 = getCurrencyV2;
 // config
 let configV2 = { usdc: {}, usdt: {} };
 const setUSDCConfig = (data) => {
     configV2.usdc = data;
 };
-exports.setUSDCConfig = setUSDCConfig;
 const getUSDCConfig = () => {
-    return configV2 === null || configV2 === void 0 ? void 0 : configV2.usdc;
+    return configV2?.usdc;
 };
-exports.getUSDCConfig = getUSDCConfig;
 const setUSDTConfig = (data) => {
     configV2.usdt = data;
 };
-exports.setUSDTConfig = setUSDTConfig;
 const getUSDTConfig = () => {
-    return configV2 === null || configV2 === void 0 ? void 0 : configV2.usdt;
+    return configV2?.usdt;
 };
-exports.getUSDTConfig = getUSDTConfig;
 const setConfigV2 = (data) => {
     configV2 = data;
 };
-exports.setConfigV2 = setConfigV2;
 const getConfigV2 = () => {
-    var _a, _b;
-    const currentPerpetual = (_b = (_a = getPerpetual()) === null || _a === void 0 ? void 0 : _a.toLowerCase) === null || _b === void 0 ? void 0 : _b.call(_a);
+    const currentPerpetual = getPerpetual()?.toLowerCase?.();
     if (currentPerpetual) {
-        return configV2 === null || configV2 === void 0 ? void 0 : configV2[currentPerpetual];
+        return configV2?.[currentPerpetual];
     }
     return configV2;
 };
-exports.getConfigV2 = getConfigV2;
+export { setUSDCConfig, getUSDCConfig, setUSDTConfig, getUSDTConfig, setUSDCCurrency, getUSDCCurrency, setUSDTCurrency, getUSDTCurrency, setPerpetual, getPerpetual, setSymbols, getSymbols, setCurrency, getCurrency, setConfig, getConfig, setSymbolsV2, getSymbolsV2, setCurrencyV2, getCurrencyV2, setConfigV2, getConfigV2, };
