@@ -17,7 +17,7 @@ export class ENV {
   registerChainId: number;
   key?: string;               // Optional API key
   secret?: string;            // Optional API secret
- k passphrase?: string;        // Optional API passphrase
+  passphrase?: string;        // Optional API passphrase (fixed: removed erroneous 'k')
   starkKeyPair?: { publicKey: string; privateKey: string }; // Optional Stark key pair
   accountId?: string;         // Optional account ID
   ethPrivateKey?: string;     // Optional Ethereum private key
