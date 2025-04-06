@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "preinstall": "npm set audit-level high",
-    "postinstall": "npm audit fix --force",
+    "postinstall": "npm audit fix --force && npm run patch-sdk",
+    "patch-sdk": "ts-node patch-sdk.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node index.ts"
+    "dev": "ts-node index.ts",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "axios": "^1.7.7",
