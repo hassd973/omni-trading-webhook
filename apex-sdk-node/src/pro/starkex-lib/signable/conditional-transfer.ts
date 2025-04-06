@@ -1,43 +1,39 @@
 import BN from 'bn.js';
 import { COLLATERAL_ASSET, COLLATERAL_ASSET_ID_BY_NETWORK_ID } from '../constants';
-import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers';
-import { getPedersenHash } from '../lib/crypto';
-import { decToBn, hexToBn, intToBn } from '../lib/util';
+import { isoTimestampToEpochHours, clientIdToNonce, toQuantumsExact } from '../helpers';
+import { getPedersenHash } from '../lib';
+import { decToBn, factToCondition, hexToBn, intToBn } from '../lib/util';
 import { ConditionalTransferParams, NetworkId, StarkwareConditionalTransfer } from '../types';
 import { TRANSFER_FEE_ASSET_ID_BN, CONDITIONAL_TRANSFER_FIELD_BIT_LENGTHS } from './constants';
 import { getCacheablePedersenHash } from './hashes';
 import { StarkSignable } from './stark-signable';
 
+// Note: Fees are not supported for conditional transfers.
 const MAX_AMOUNT_FEE_BN = new BN(0);
 const CONDITIONAL_TRANSFER_PREFIX = 5;
 const CONDITIONAL_TRANSFER_PADDING_BITS = 81;
 
 /**
- * Wrapper object to hash, sign, and verify a conditional transfer.
+ * Wrapper object to convert a conditional transfer, and hash, sign, and verify its signature.
  */
 export class SignableConditionalTransfer extends StarkSignable<StarkwareConditionalTransfer> {
   static fromTransfer(transfer: ConditionalTransferParams, networkId: NetworkId): SignableConditionalTransfer {
-    const nonce = clientIdToNonce(transfer.clientId); // Keep as number
-    const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6');
-    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp); // Keep as number
-    const condition = transfer.fact; // Use fact as condition
+    const nonce = clientIdToNonce(transfer.clientId); // String
+    const quantumsAmount = toQuantumsExact(transfer.humanAmount, COLLATERAL_ASSET); // String
+    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp); // Number
 
     return new SignableConditionalTransfer(
       {
         senderPositionId: transfer.senderPositionId,
         receiverPositionId: transfer.receiverPositionId,
         receiverPublicKey: transfer.receiverPublicKey,
+        condition: factToCondition(transfer.factRegistryAddress, transfer.fact),
         quantumsAmount,
         nonce,
         expirationEpochHours,
-        condition,
       },
       networkId,
     );
-  }
-
-  constructor(message: StarkwareConditionalTransfer, networkId: NetworkId) {
-    super(message, networkId);
   }
 
   protected async calculateHash(): Promise<BN> {
