@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 
-// Load env vars
+// Load and validate environment variables
 const {
   API_KEY,
   SECRET,
@@ -20,98 +20,162 @@ const {
   ACCOUNT_ID,
   OMNI_SEED,
   L2KEY,
-  CHAIN_ID = '42161'
+  CHAIN_ID = '42161',
+  API_URL,
+  NODE_ENV
 } = process.env;
 
-console.log(`\n🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
-console.log(`📡 SECRET: ${SECRET ? '✔️' : '❌'}`);
-console.log(`📡 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
+// Environment validation
+const requiredVars = ['API_KEY', 'SECRET', 'PASSPHRASE', 'ETH_PRIVATE_KEY', 'ACCOUNT_ID', 'L2KEY'];
+const missingVars = requiredVars.filter(varname => !process.env[varname]);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+  process.exit(1);
+}
+
+console.log('\n=== Environment Variables Validation ===');
+console.log(`🔑 API_KEY: ${API_KEY ? '✔️' : '❌'}`);
+console.log(`🔒 SECRET: ${SECRET ? '✔️' : '❌'}`);
+console.log(`🔑 PASSPHRASE: ${PASSPHRASE ? '✔️' : '❌'}`);
 console.log(`🔑 ETH_PRIVATE_KEY: ${ETH_PRIVATE_KEY ? '✔️' : '❌'}`);
-console.log(`📡 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
-console.log(`🌍 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
+console.log(`🆔 ACCOUNT_ID: ${ACCOUNT_ID ? '✔️' : '❌'}`);
+console.log(`🌱 OMNI_SEED: ${OMNI_SEED ? '✔️' : '❌'}`);
 console.log(`🔑 L2KEY: ${L2KEY ? '✔️' : '❌'}`);
-console.log(`🧬 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}\n`);
+console.log(`🌐 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
+console.log(`🌍 API_URL: ${API_URL ? '✔️' : '❌ (using default)'}`);
+console.log(`⚙️ NODE_ENV: ${NODE_ENV ? '✔️' : '❌ (defaulting to development)'}\n`);
 
 // Initialize ApexClient with proper ENV type
 const apexClient = new ApexClient({
-  networkId: parseInt(CHAIN_ID || '42161'),
-  key: API_KEY || '', // Fixed by adding 'key' to ENV
-  secret: SECRET || '',
-  passphrase: PASSPHRASE || '',
+  networkId: parseInt(CHAIN_ID),
+  key: API_KEY!,
+  secret: SECRET!,
+  passphrase: PASSPHRASE!,
   starkKeyPair: {
-    publicKey: L2KEY || '',
-    privateKey: OMNI_SEED || ''
+    publicKey: L2KEY!,
+    privateKey: OMNI_SEED || L2KEY! // Fallback to L2KEY if OMNI_SEED not available
   },
-  accountId: ACCOUNT_ID || '',
-  ethPrivateKey: ETH_PRIVATE_KEY || ''
+  accountId: ACCOUNT_ID!,
+  ethPrivateKey: ETH_PRIVATE_KEY!,
+  url: API_URL || 'https://api.pro.apex.exchange',
+  isProd: NODE_ENV === 'production',
+  registerChainId: parseInt(CHAIN_ID)
 });
 
-// Startup checks
-(async () => {
+// Health check and startup validation
+async function startupChecks() {
   try {
-    const time = await apexClient.publicApi.getServerTime(); // Fixed by adding to PublicApi
-    console.log('✅ Time Check:', time);
+    console.log('🚀 Performing startup checks...');
+    
+    const time = await apexClient.publicApi.getServerTime();
+    console.log('✅ Server time check:', time);
 
-    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // Fixed by adding to PrivateApi
-    console.log('✅ Positions:', positions);
+    const positions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID! });
+    console.log('✅ Initial positions loaded:', positions.length);
 
-    const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
-    console.log('✅ Balance:', balance);
+    const balance = await apexClient.privateApi.getAccount(ACCOUNT_ID!, 'USDC');
+    console.log('✅ Initial balance loaded:', balance);
+
+    return { positions, balance };
   } catch (err) {
-    console.error('❌ Startup Error:', err);
+    console.error('❌ Startup checks failed:', err);
+    throw err;
   }
-})();
+}
 
-// In-memory state
-let latestPositions: any = null;
-let latestBalance: any = null;
+// In-memory state with proper typing
+interface Position {
+  symbol: string;
+  size: number;
+  side: 'LONG' | 'SHORT';
+  // Add other position properties as needed
+}
 
-// Auto-refresh every 30s
-setInterval(async () => {
+interface Balance {
+  freeCollateral: string;
+  totalAccountValue: string;
+  // Add other balance properties as needed
+}
+
+let latestPositions: Position[] | null = null;
+let latestBalance: Balance | null = null;
+
+// Auto-refresh state every 30s
+async function refreshState() {
   try {
-    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID || '' }); // Fixed by adding to PrivateApi
-    latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID || '', 'USDC');
+    latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID! });
+    latestBalance = await apexClient.privateApi.getAccount(ACCOUNT_ID!, 'USDC');
+    console.log('🔄 State refreshed at:', new Date().toISOString());
   } catch (err) {
-    console.error('❌ Refresh Error:', err);
+    console.error('❌ State refresh failed:', err);
   }
-}, 30000);
+}
 
-// REST API for frontend
-app.get('/api/positions', (req: express.Request, res: express.Response) => {
+// Initialize and start periodic refresh
+startupChecks()
+  .then(({ positions, balance }) => {
+    latestPositions = positions;
+    latestBalance = balance;
+    setInterval(refreshState, 30000);
+  })
+  .catch(err => {
+    console.error('⚠️ Application may not function properly due to startup errors');
+  });
+
+// REST API endpoints
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    lastUpdated: new Date().toISOString(),
+    positionsCount: latestPositions?.length || 0,
+    hasBalance: !!latestBalance
+  });
+});
+
+app.get('/api/positions', (req, res) => {
+  if (!latestPositions) {
+    return res.status(503).json({ error: 'Positions not loaded yet' });
+  }
   res.json({ positions: latestPositions });
 });
 
-app.get('/api/balance', (req: express.Request, res: express.Response) => {
+app.get('/api/balance', (req, res) => {
+  if (!latestBalance) {
+    return res.status(503).json({ error: 'Balance not loaded yet' });
+  }
   res.json({ balance: latestBalance });
 });
 
-// Webhook for trading
-app.post('/webhook', async (req: express.Request, res: express.Response) => {
-  const { side, symbol, size, price } = req.body as {
-    side?: string;
-    symbol?: string;
-    size?: string;
-    price?: string;
-  };
-  const clientId = uuidv4();
-
-  const validSide = side?.toUpperCase() === 'BUY' || side?.toUpperCase() === 'SELL'
-    ? side.toUpperCase() as 'BUY' | 'SELL'
-    : 'BUY'; // Fixed TS2345
-
-  const orderParams = {
-    symbol: symbol?.replace('USD', '-USD') || '',
-    side: validSide,
-    type: price ? 'LIMIT' : 'MARKET' as 'LIMIT' | 'MARKET',
-    size: size ? parseFloat(size) : 0,
-    price: price ? parseFloat(price) : undefined,
-    timeInForce: 'GTC' as const,
-    clientOrderId: clientId,
-    reduceOnly: false,
-    maxFeeRate: '0.0005'
-  };
-
+// Webhook for trading with improved validation
+app.post('/webhook', async (req, res) => {
   try {
+    const { side, symbol, size, price, reduceOnly } = req.body;
+    
+    // Input validation
+    if (!symbol || !size) {
+      return res.status(400).json({ error: 'Missing required fields: symbol and size' });
+    }
+
+    const validSide = side?.toUpperCase() === 'BUY' ? 'BUY' : 'SELL';
+    const validSymbol = symbol.toUpperCase().includes('-USD') 
+      ? symbol.toUpperCase() 
+      : `${symbol.toUpperCase()}-USD`;
+
+    const orderParams = {
+      symbol: validSymbol,
+      side: validSide,
+      type: price ? 'LIMIT' : 'MARKET',
+      size: parseFloat(size),
+      price: price ? parseFloat(price) : undefined,
+      timeInForce: 'GTC',
+      clientOrderId: uuidv4(),
+      reduceOnly: Boolean(reduceOnly),
+      maxFeeRate: '0.0005'
+    };
+
+    console.log('📩 New order request:', orderParams);
+
     const orderRes = await apexClient.privateApi.createOrder(
       orderParams.symbol,
       orderParams.side,
@@ -122,14 +186,26 @@ app.post('/webhook', async (req: express.Request, res: express.Response) => {
       orderParams.clientOrderId,
       orderParams.maxFeeRate
     );
-    console.log('Order Response:', orderRes);
+
+    console.log('✅ Order executed:', orderRes);
     res.json(orderRes);
   } catch (err) {
-    console.error('❌ Order Error:', err);
-    res.json({ error: 'Order failed' });
+    console.error('❌ Order failed:', err);
+    res.status(500).json({ 
+      error: 'Order failed',
+      details: err instanceof Error ? err.message : String(err)
+    });
   }
 });
 
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('⚠️ Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 app.listen(PORT, () => {
-  console.log(`🧊 ICE KING running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Environment: ${NODE_ENV || 'development'}`);
+  console.log(`🔗 API URL: ${API_URL || 'default'}`);
 });
