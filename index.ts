@@ -11,6 +11,40 @@ const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 
+// Type definitions
+interface Position {
+  symbol: string;
+  size: number;
+  side: 'LONG' | 'SHORT';
+  // Add other position properties as needed
+}
+
+interface Balance {
+  freeCollateral: string;
+  totalAccountValue: string;
+  // Add other balance properties as needed
+}
+
+interface OrderRequest {
+  side?: string;
+  symbol?: string;
+  size?: string;
+  price?: string;
+  reduceOnly?: boolean;
+}
+
+interface OrderParams {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  type: 'LIMIT' | 'MARKET';
+  size: number;
+  price?: number;
+  timeInForce: 'GTC';
+  clientOrderId: string;
+  reduceOnly: boolean;
+  maxFeeRate: string;
+}
+
 // Load and validate environment variables
 const {
   API_KEY,
@@ -25,7 +59,6 @@ const {
   NODE_ENV
 } = process.env;
 
-// Environment validation
 const requiredVars = ['API_KEY', 'SECRET', 'PASSPHRASE', 'ETH_PRIVATE_KEY', 'ACCOUNT_ID', 'L2KEY'];
 const missingVars = requiredVars.filter(varname => !process.env[varname]);
 
@@ -46,7 +79,7 @@ console.log(`🌐 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
 console.log(`🌍 API_URL: ${API_URL ? '✔️' : '❌ (using default)'}`);
 console.log(`⚙️ NODE_ENV: ${NODE_ENV ? '✔️' : '❌ (defaulting to development)'}\n`);
 
-// Initialize ApexClient with proper ENV type
+// Initialize ApexClient
 const apexClient = new ApexClient({
   networkId: parseInt(CHAIN_ID),
   key: API_KEY!,
@@ -54,7 +87,7 @@ const apexClient = new ApexClient({
   passphrase: PASSPHRASE!,
   starkKeyPair: {
     publicKey: L2KEY!,
-    privateKey: OMNI_SEED || L2KEY! // Fallback to L2KEY if OMNI_SEED not available
+    privateKey: OMNI_SEED || L2KEY!
   },
   accountId: ACCOUNT_ID!,
   ethPrivateKey: ETH_PRIVATE_KEY!,
@@ -63,11 +96,14 @@ const apexClient = new ApexClient({
   registerChainId: parseInt(CHAIN_ID)
 });
 
-// Health check and startup validation
+// State management
+let latestPositions: Position[] | null = null;
+let latestBalance: Balance | null = null;
+
+// Startup checks
 async function startupChecks() {
   try {
     console.log('🚀 Performing startup checks...');
-    
     const time = await apexClient.publicApi.getServerTime();
     console.log('✅ Server time check:', time);
 
@@ -84,24 +120,7 @@ async function startupChecks() {
   }
 }
 
-// In-memory state with proper typing
-interface Position {
-  symbol: string;
-  size: number;
-  side: 'LONG' | 'SHORT';
-  // Add other position properties as needed
-}
-
-interface Balance {
-  freeCollateral: string;
-  totalAccountValue: string;
-  // Add other balance properties as needed
-}
-
-let latestPositions: Position[] | null = null;
-let latestBalance: Balance | null = null;
-
-// Auto-refresh state every 30s
+// Auto-refresh state
 async function refreshState() {
   try {
     latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID! });
@@ -112,7 +131,7 @@ async function refreshState() {
   }
 }
 
-// Initialize and start periodic refresh
+// Initialize application
 startupChecks()
   .then(({ positions, balance }) => {
     latestPositions = positions;
@@ -123,7 +142,7 @@ startupChecks()
     console.error('⚠️ Application may not function properly due to startup errors');
   });
 
-// REST API endpoints
+// API Endpoints
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -147,22 +166,21 @@ app.get('/api/balance', (req, res) => {
   res.json({ balance: latestBalance });
 });
 
-// Webhook for trading with improved validation
+// Webhook endpoint with proper typing
 app.post('/webhook', async (req, res) => {
   try {
-    const { side, symbol, size, price, reduceOnly } = req.body;
+    const { side, symbol, size, price, reduceOnly }: OrderRequest = req.body;
     
-    // Input validation
     if (!symbol || !size) {
       return res.status(400).json({ error: 'Missing required fields: symbol and size' });
     }
 
-    const validSide = side?.toUpperCase() === 'BUY' ? 'BUY' : 'SELL';
+    const validSide = side?.toUpperCase() === 'BUY' ? 'BUY' : 'SELL' as const;
     const validSymbol = symbol.toUpperCase().includes('-USD') 
       ? symbol.toUpperCase() 
       : `${symbol.toUpperCase()}-USD`;
 
-    const orderParams = {
+    const orderParams: OrderParams = {
       symbol: validSymbol,
       side: validSide,
       type: price ? 'LIMIT' : 'MARKET',
@@ -198,12 +216,13 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Error handling middleware
+// Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('⚠️ Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${NODE_ENV || 'development'}`);
