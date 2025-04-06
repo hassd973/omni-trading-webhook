@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BasicException = void 0;
-class BasicException extends Error {
+export class BasicException extends Error {
     /**
      * @param msg
      * @param code
@@ -42,5 +39,4 @@ class BasicException extends Error {
         return `${this._msg}`;
     }
 }
-exports.BasicException = BasicException;
 BasicException.CODE = 400;

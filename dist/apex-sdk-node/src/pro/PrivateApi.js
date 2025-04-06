@@ -1,87 +1,69 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PrivateApi = void 0;
-const starkex_lib_1 = require("./starkex-lib");
-const crypto_js_1 = __importDefault(require("crypto-js"));
-const apexpro_1 = require("./apexpro");
-const qs_1 = __importDefault(require("qs"));
-class PrivateApi {
+import { addOrderExpirationBufferHours, isoTimestampToEpochHours, SignableOrder } from './starkex-lib';
+import cryptojs from 'crypto-js';
+import { BasicException, generateRandomClientId, isNullOrBlank, OrderSide, Trace, } from './apexpro';
+import qs from 'qs';
+export class PrivateApi {
     constructor(clientConfig) {
         this.clientConfig = clientConfig;
     }
-    request(path_1, method_1) {
-        return __awaiter(this, arguments, void 0, function* (path, method, data = {}, config = {
-            headers: {},
-            form: true,
-        }) {
-            let params = qs_1.default.stringify(data, {
-                filter(prefix, value) {
-                    if (value) {
-                        return value;
-                    }
-                    return;
-                },
-                sort(a, b) {
-                    return a.localeCompare(b);
-                },
-            });
-            if (['get', 'delete'].indexOf(method.toLowerCase()) >= 0) {
-                if (Object.keys(data).length > 0) {
-                    if (params) {
-                        path = path + '?' + params;
-                    }
-                    params = '';
+    async request(path, method, data = {}, config = {
+        headers: {},
+        form: true,
+    }) {
+        let params = qs.stringify(data, {
+            filter(prefix, value) {
+                if (value) {
+                    return value;
                 }
-            }
-            const isoTimestamp = this.clientConfig.clock.getAdjustedIsoString();
-            const headers = {
-                'APEX-SIGNATURE': this.sign(path, method, isoTimestamp, params),
-                'APEX-API-KEY': this.clientConfig.apiKeyCredentials.key,
-                'APEX-TIMESTAMP': new Date(isoTimestamp).getTime(),
-                'APEX-PASSPHRASE': this.clientConfig.apiKeyCredentials.passphrase,
-            };
-            config.headers = Object.assign(Object.assign({}, config.headers), headers);
-            return this.clientConfig.apiTool.apiRequest(path, method, params, config);
+                return;
+            },
+            sort(a, b) {
+                return a.localeCompare(b);
+            },
         });
+        if (['get', 'delete'].indexOf(method.toLowerCase()) >= 0) {
+            if (Object.keys(data).length > 0) {
+                if (params) {
+                    path = path + '?' + params;
+                }
+                params = '';
+            }
+        }
+        const isoTimestamp = this.clientConfig.clock.getAdjustedIsoString();
+        const headers = {
+            'APEX-SIGNATURE': this.sign(path, method, isoTimestamp, params),
+            'APEX-API-KEY': this.clientConfig.apiKeyCredentials.key,
+            'APEX-TIMESTAMP': new Date(isoTimestamp).getTime(),
+            'APEX-PASSPHRASE': this.clientConfig.apiKeyCredentials.passphrase,
+        };
+        config.headers = {
+            ...config.headers,
+            ...headers,
+        };
+        return this.clientConfig.apiTool.apiRequest(path, method, params, config);
     }
     sign(requestPath, method, isoTimestamp, params) {
-        const messageString = new Date(isoTimestamp).getTime() + method.toUpperCase() + requestPath + ((0, apexpro_1.isNullOrBlank)(params) ? '' : params);
-        apexpro_1.Trace.print(messageString);
+        const messageString = new Date(isoTimestamp).getTime() + method.toUpperCase() + requestPath + (isNullOrBlank(params) ? '' : params);
+        Trace.print(messageString);
         const key = Buffer.from(this.clientConfig.apiKeyCredentials.secret).toString('base64');
-        const hash = crypto_js_1.default.HmacSHA256(messageString, key);
-        return hash.toString(crypto_js_1.default.enc.Base64);
+        const hash = cryptojs.HmacSHA256(messageString, key);
+        return hash.toString(cryptojs.enc.Base64);
     }
-    getSignature(signature, signatureFunc) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (signature) {
-                return signature;
-            }
-            if (!this.clientConfig.starkKeyPair) {
-                throw new apexpro_1.BasicException('StarkKeyPair Uninitialized');
-            }
-            return yield signatureFunc();
-        });
+    async getSignature(signature, signatureFunc) {
+        if (signature) {
+            return signature;
+        }
+        if (!this.clientConfig.starkKeyPair) {
+            throw new BasicException('StarkKeyPair Uninitialized');
+        }
+        return await signatureFunc();
     }
     /**
      * GET Retrieve User Data
      * @see https://api-docs.pro.apex.exchange/#privateapi-get-retrieve-user-data
      */
-    user() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/user', 'get');
-        });
+    async user() {
+        return this.request('/api/v1/user', 'get');
     }
     /**
      * GET Retrieve User Account Data
@@ -90,20 +72,16 @@ class PrivateApi {
      * @param ethereumAddress ethereumAddress
      * @returns promise
      */
-    getAccount(id, ethereumAddress) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/account', 'get', {
-                id,
-                ethereumAddress,
-            });
+    async getAccount(id, ethereumAddress) {
+        return this.request('/api/v1/account', 'get', {
+            id,
+            ethereumAddress,
         });
     }
-    getAccountV2(id, ethereumAddress) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/account', 'get', {
-                id,
-                ethereumAddress,
-            });
+    async getAccountV2(id, ethereumAddress) {
+        return this.request('/api/v2/account', 'get', {
+            id,
+            ethereumAddress,
         });
     }
     /**
@@ -118,33 +96,29 @@ class PrivateApi {
      * @param page Page numbers start from 0
      * @param orderType "ACTIVE","CONDITION","HISTORY"
      */
-    tradeHistory(symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/fills', 'get', {
-                symbol,
-                status,
-                side,
-                limit,
-                beginTimeInclusive,
-                endTimeExclusive,
-                page,
-                orderType,
-            });
+    async tradeHistory(symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
+        return this.request('/api/v1/fills', 'get', {
+            symbol,
+            status,
+            side,
+            limit,
+            beginTimeInclusive,
+            endTimeExclusive,
+            page,
+            orderType,
         });
     }
-    tradeHistoryV2(token, symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/fills', 'get', {
-                token,
-                symbol,
-                status,
-                side,
-                limit,
-                beginTimeInclusive,
-                endTimeExclusive,
-                page,
-                orderType,
-            });
+    async tradeHistoryV2(token, symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
+        return this.request('/api/v2/fills', 'get', {
+            token,
+            symbol,
+            status,
+            side,
+            limit,
+            beginTimeInclusive,
+            endTimeExclusive,
+            page,
+            orderType,
         });
     }
     /**
@@ -154,22 +128,18 @@ class PrivateApi {
      * @param size Order open size
      * @param side BUY or SELL order
      */
-    getWorstPrice(symbol, size, side) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/get-worst-price', 'get', {
-                symbol,
-                size,
-                side,
-            });
+    async getWorstPrice(symbol, size, side) {
+        return this.request('/api/v1/get-worst-price', 'get', {
+            symbol,
+            size,
+            side,
         });
     }
-    getWorstPriceV2(symbol, size, side) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/get-worst-price', 'get', {
-                symbol,
-                size,
-                side,
-            });
+    async getWorstPriceV2(symbol, size, side) {
+        return this.request('/api/v2/get-worst-price', 'get', {
+            symbol,
+            size,
+            side,
         });
     }
     /**
@@ -188,99 +158,91 @@ class PrivateApi {
      * @param trailingPercent Conditional order trailing-stop
      * @param reduceOnly Reduce-only
      */
-    createOrder(clientOrderId, positionId, symbol, side, type, size, price, limitFee, timeInForce, triggerPrice, trailingPercent, reduceOnly, brokerId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            clientOrderId = clientOrderId || (0, apexpro_1.generateRandomClientId)();
-            const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
-            const signature = yield this.getSignature('', () => {
-                const orderToSign = {
-                    humanSize: `${Number(size)}`,
-                    humanPrice: price,
-                    limitFee,
-                    symbol,
-                    side: side === 'BUY' ? apexpro_1.OrderSide.BUY : apexpro_1.OrderSide.SELL,
-                    expirationIsoTimestamp,
-                    clientId: clientOrderId,
-                    positionId,
-                };
-                const starkOrder = starkex_lib_1.SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
-                return starkOrder.sign(this.clientConfig.starkKeyPair);
-            });
-            const order = {
-                clientId: clientOrderId,
-                expiration: (0, starkex_lib_1.addOrderExpirationBufferHours)((0, starkex_lib_1.isoTimestampToEpochHours)(expirationIsoTimestamp)) * 60 * 60 * 1000,
+    async createOrder(clientOrderId, positionId, symbol, side, type, size, price, limitFee, timeInForce, triggerPrice, trailingPercent, reduceOnly, brokerId) {
+        clientOrderId = clientOrderId || generateRandomClientId();
+        const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const signature = await this.getSignature('', () => {
+            const orderToSign = {
+                humanSize: `${Number(size)}`,
+                humanPrice: price,
                 limitFee,
-                price,
-                reduceOnly,
-                side,
-                signature,
-                size,
                 symbol,
-                clientOrderId,
-                timeInForce,
-                triggerPrice,
-                trailingPercent,
-                type,
-                brokerId
+                side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
+                expirationIsoTimestamp,
+                clientId: clientOrderId,
+                positionId,
             };
-            return this.request('/api/v1/create-order', 'post', order);
+            const starkOrder = SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
+            return starkOrder.sign(this.clientConfig.starkKeyPair);
         });
+        const order = {
+            clientId: clientOrderId,
+            expiration: addOrderExpirationBufferHours(isoTimestampToEpochHours(expirationIsoTimestamp)) * 60 * 60 * 1000,
+            limitFee,
+            price,
+            reduceOnly,
+            side,
+            signature,
+            size,
+            symbol,
+            clientOrderId,
+            timeInForce,
+            triggerPrice,
+            trailingPercent,
+            type,
+            brokerId
+        };
+        return this.request('/api/v1/create-order', 'post', order);
     }
-    createOrderV2(clientOrderId, positionId, symbol, side, type, size, price, limitFee, timeInForce, triggerPrice, trailingPercent, reduceOnly, brokerId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            clientOrderId = clientOrderId || (0, apexpro_1.generateRandomClientId)();
-            const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
-            const signature = yield this.getSignature('', () => {
-                const orderToSign = {
-                    humanSize: `${Number(size)}`,
-                    humanPrice: price,
-                    limitFee,
-                    symbol,
-                    side: side === 'BUY' ? apexpro_1.OrderSide.BUY : apexpro_1.OrderSide.SELL,
-                    expirationIsoTimestamp,
-                    clientId: clientOrderId,
-                    positionId,
-                };
-                const starkOrder = starkex_lib_1.SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
-                return starkOrder.sign(this.clientConfig.starkKeyPair);
-            });
-            const order = {
-                clientId: clientOrderId,
-                expiration: (0, starkex_lib_1.addOrderExpirationBufferHours)((0, starkex_lib_1.isoTimestampToEpochHours)(expirationIsoTimestamp)) * 60 * 60 * 1000,
+    async createOrderV2(clientOrderId, positionId, symbol, side, type, size, price, limitFee, timeInForce, triggerPrice, trailingPercent, reduceOnly, brokerId) {
+        clientOrderId = clientOrderId || generateRandomClientId();
+        const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const signature = await this.getSignature('', () => {
+            const orderToSign = {
+                humanSize: `${Number(size)}`,
+                humanPrice: price,
                 limitFee,
-                price,
-                reduceOnly,
-                side,
-                signature,
-                size,
                 symbol,
-                clientOrderId,
-                timeInForce,
-                triggerPrice,
-                trailingPercent,
-                type,
-                brokerId
+                side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
+                expirationIsoTimestamp,
+                clientId: clientOrderId,
+                positionId,
             };
-            return this.request('/api/v2/create-order', 'post', order);
+            const starkOrder = SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
+            return starkOrder.sign(this.clientConfig.starkKeyPair);
         });
+        const order = {
+            clientId: clientOrderId,
+            expiration: addOrderExpirationBufferHours(isoTimestampToEpochHours(expirationIsoTimestamp)) * 60 * 60 * 1000,
+            limitFee,
+            price,
+            reduceOnly,
+            side,
+            signature,
+            size,
+            symbol,
+            clientOrderId,
+            timeInForce,
+            triggerPrice,
+            trailingPercent,
+            type,
+            brokerId
+        };
+        return this.request('/api/v2/create-order', 'post', order);
     }
     /**
      * POST Cancel Order
      * @see https://api-docs.pro.apex.exchange/#privateapi-post-cancel-order
      * @param id of the order being canceled
      */
-    cancelOrder(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/delete-order', 'post', {
-                id,
-            });
+    async cancelOrder(id) {
+        return this.request('/api/v1/delete-order', 'post', {
+            id,
         });
     }
-    cancelOrderV2(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/delete-order', 'post', {
-                id,
-            });
+    async cancelOrderV2(id) {
+        return this.request('/api/v2/delete-order', 'post', {
+            id,
         });
     }
     /**
@@ -288,18 +250,14 @@ class PrivateApi {
      * @see https://api-docs.pro.apex.exchange/#privateapi-post-cancel-order-by-clientorderid
      * @param id of the order being canceled
      */
-    cancelOrderByClientOrderId(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/delete-client-order-id', 'post', {
-                id,
-            });
+    async cancelOrderByClientOrderId(id) {
+        return this.request('/api/v1/delete-client-order-id', 'post', {
+            id,
         });
     }
-    cancelOrderByClientOrderIdV2(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/delete-client-order-id', 'post', {
-                id,
-            });
+    async cancelOrderByClientOrderIdV2(id) {
+        return this.request('/api/v2/delete-client-order-id', 'post', {
+            id,
         });
     }
     /**
@@ -307,59 +265,45 @@ class PrivateApi {
      * @see https://api-docs.pro.apex.exchange/#privateapi-post-cancel-all-open-orders
      * @param symbol "BTC-USDC,ETH-USDC", Cancel all orders if none
      */
-    cancelAllOrder(symbol) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/delete-open-orders', 'post', {
-                symbol,
-            });
+    async cancelAllOrder(symbol) {
+        return this.request('/api/v1/delete-open-orders', 'post', {
+            symbol,
         });
     }
-    cancelAllOrderV2(token, symbol) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/delete-open-orders', 'post', {
-                token,
-                symbol,
-            });
+    async cancelAllOrderV2(token, symbol) {
+        return this.request('/api/v2/delete-open-orders', 'post', {
+            token,
+            symbol,
         });
     }
     /**
      * GET Open Orders
      * @see https://api-docs.pro.apex.exchange/#privateapi-get-open-orders
      */
-    openOrders() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/open-orders', 'get', {});
-        });
+    async openOrders() {
+        return this.request('/api/v1/open-orders', 'get', {});
     }
-    openOrdersV2(token) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/open-orders', 'get', { token });
-        });
+    async openOrdersV2(token) {
+        return this.request('/api/v1/open-orders', 'get', { token });
     }
     /**
      * GET Order ID
      * @see https://api-docs.pro.apex.exchange/#privateapi-get-order-id
      * @param id
      */
-    getOrder(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/get-order', 'get', { id });
-        });
+    async getOrder(id) {
+        return this.request('/api/v1/get-order', 'get', { id });
     }
-    getOrderV2(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/get-order', 'get', { id });
-        });
+    async getOrderV2(id) {
+        return this.request('/api/v2/get-order', 'get', { id });
     }
     /**
      * GET Order by clientOrderId
      * @see https://api-docs.pro.apex.exchange/#privateapi-get-order-by-clientorderid
      * @param id
      */
-    getOrderByClientOrderId(id) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/order-by-client-order-id', 'get', { id });
-        });
+    async getOrderByClientOrderId(id) {
+        return this.request('/api/v1/order-by-client-order-id', 'get', { id });
     }
     /**
      * GET All Order History
@@ -373,33 +317,29 @@ class PrivateApi {
      * @param page Page numbers start from 0
      * @param orderType "ACTIVE","CONDITION","HISTORY"
      */
-    historyOrders(symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/history-orders', 'get', {
-                symbol,
-                status,
-                side,
-                limit,
-                beginTimeInclusive,
-                endTimeExclusive,
-                page,
-                orderType,
-            });
+    async historyOrders(symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
+        return this.request('/api/v1/history-orders', 'get', {
+            symbol,
+            status,
+            side,
+            limit,
+            beginTimeInclusive,
+            endTimeExclusive,
+            page,
+            orderType,
         });
     }
-    historyOrdersV2(token, symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/history-orders', 'get', {
-                token,
-                symbol,
-                status,
-                side,
-                limit,
-                beginTimeInclusive,
-                endTimeExclusive,
-                page,
-                orderType,
-            });
+    async historyOrdersV2(token, symbol, status, side, limit, beginTimeInclusive, endTimeExclusive, page, orderType) {
+        return this.request('/api/v2/history-orders', 'get', {
+            token,
+            symbol,
+            status,
+            side,
+            limit,
+            beginTimeInclusive,
+            endTimeExclusive,
+            page,
+            orderType,
         });
     }
     /**
@@ -413,31 +353,27 @@ class PrivateApi {
      * @param side 'BUY' | 'SELL'
      * @param status
      */
-    fundingRate(symbol, limit, page, beginTimeInclusive, endTimeExclusive, side, status) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/funding', 'get', {
-                symbol,
-                limit,
-                page,
-                beginTimeInclusive,
-                endTimeExclusive,
-                side,
-                status,
-            });
+    async fundingRate(symbol, limit, page, beginTimeInclusive, endTimeExclusive, side, status) {
+        return this.request('/api/v1/funding', 'get', {
+            symbol,
+            limit,
+            page,
+            beginTimeInclusive,
+            endTimeExclusive,
+            side,
+            status,
         });
     }
-    fundingRateV2(token, symbol, limit, page, beginTimeInclusive, endTimeExclusive, side, status) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/funding', 'get', {
-                token,
-                symbol,
-                limit,
-                page,
-                beginTimeInclusive,
-                endTimeExclusive,
-                side,
-                status,
-            });
+    async fundingRateV2(token, symbol, limit, page, beginTimeInclusive, endTimeExclusive, side, status) {
+        return this.request('/api/v2/funding', 'get', {
+            token,
+            symbol,
+            limit,
+            page,
+            beginTimeInclusive,
+            endTimeExclusive,
+            side,
+            status,
         });
     }
     /**
@@ -450,44 +386,36 @@ class PrivateApi {
      * @param page Page numbers start from 0
      * @param limit Default at 100
      */
-    historicalPNL(beginTimeInclusive, endTimeExclusive, type, symbol, page, limit) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/historical-pnl', 'get', {
-                beginTimeInclusive,
-                endTimeExclusive,
-                type,
-                symbol,
-                page,
-                limit,
-            });
+    async historicalPNL(beginTimeInclusive, endTimeExclusive, type, symbol, page, limit) {
+        return this.request('/api/v1/historical-pnl', 'get', {
+            beginTimeInclusive,
+            endTimeExclusive,
+            type,
+            symbol,
+            page,
+            limit,
         });
     }
-    historicalPNLV2(token, beginTimeInclusive, endTimeExclusive, type, symbol, page, limit) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/historical-pnl', 'get', {
-                token,
-                beginTimeInclusive,
-                endTimeExclusive,
-                type,
-                symbol,
-                page,
-                limit,
-            });
+    async historicalPNLV2(token, beginTimeInclusive, endTimeExclusive, type, symbol, page, limit) {
+        return this.request('/api/v2/historical-pnl', 'get', {
+            token,
+            beginTimeInclusive,
+            endTimeExclusive,
+            type,
+            symbol,
+            page,
+            limit,
         });
     }
     /**
      * GET Yesterday's Profit & Loss
      * @see https://api-docs.pro.apex.exchange/#privateapi-get-yesterday-39-s-profit-amp-loss
      */
-    yesterdayPNL() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/yesterday-pnl', 'get', {});
-        });
+    async yesterdayPNL() {
+        return this.request('/api/v1/yesterday-pnl', 'get', {});
     }
-    yesterdayPNLV2(token) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/yesterday-pnl', 'get', { token });
-        });
+    async yesterdayPNLV2(token) {
+        return this.request('/api/v2/yesterday-pnl', 'get', { token });
     }
     /**
      * POST Sets the initial margin rate of a contract
@@ -495,34 +423,25 @@ class PrivateApi {
      * @param symbol
      * @param initialMarginRate
      */
-    setInitialMarginRate(symbol, initialMarginRate) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/set-initial-margin-rate', 'post', {
-                symbol,
-                initialMarginRate,
-            });
+    async setInitialMarginRate(symbol, initialMarginRate) {
+        return this.request('/api/v1/set-initial-margin-rate', 'post', {
+            symbol,
+            initialMarginRate,
         });
     }
-    setInitialMarginRateV2(symbol, initialMarginRate) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/set-initial-margin-rate', 'post', {
-                symbol,
-                initialMarginRate,
-            });
+    async setInitialMarginRateV2(symbol, initialMarginRate) {
+        return this.request('/api/v2/set-initial-margin-rate', 'post', {
+            symbol,
+            initialMarginRate,
         });
     }
     /**
      * GET Account Balance
      */
-    accountBalance() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v1/account-balance', 'get', {});
-        });
+    async accountBalance() {
+        return this.request('/api/v1/account-balance', 'get', {});
     }
-    accountBalanceV2() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.request('/api/v2/account-balance', 'get', {});
-        });
+    async accountBalanceV2() {
+        return this.request('/api/v2/account-balance', 'get', {});
     }
 }
-exports.PrivateApi = PrivateApi;

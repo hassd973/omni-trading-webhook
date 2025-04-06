@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.OrderStatus = exports.TimeInForce = exports.OrderType = exports.OrderSide = exports.Market = exports.ApexMarket = void 0;
-var ApexMarket;
+export var ApexMarket;
 (function (ApexMarket) {
     ApexMarket["BTC_USDT"] = "BTC-USDT";
     ApexMarket["BTC_USDC"] = "BTC-USDC";
@@ -40,30 +37,30 @@ var ApexMarket;
     ApexMarket["TRX_USD"] = "TRX-USD";
     ApexMarket["XTZ_USD"] = "XTZ-USD";
     ApexMarket["HNT_USD"] = "HNT-USD";
-})(ApexMarket || (exports.ApexMarket = ApexMarket = {}));
-exports.Market = ApexMarket;
-var OrderSide;
+})(ApexMarket || (ApexMarket = {}));
+export const Market = ApexMarket;
+export var OrderSide;
 (function (OrderSide) {
     OrderSide["BUY"] = "BUY";
     OrderSide["SELL"] = "SELL";
-})(OrderSide || (exports.OrderSide = OrderSide = {}));
-var OrderType;
+})(OrderSide || (OrderSide = {}));
+export var OrderType;
 (function (OrderType) {
     OrderType["LIMIT"] = "LIMIT";
     OrderType["MARKET"] = "MARKET";
     OrderType["CONDITION"] = "CONDITION";
-})(OrderType || (exports.OrderType = OrderType = {}));
-var TimeInForce;
+})(OrderType || (OrderType = {}));
+export var TimeInForce;
 (function (TimeInForce) {
     TimeInForce["GTT"] = "GTT";
     TimeInForce["FOK"] = "FOK";
     TimeInForce["IOC"] = "IOC";
-})(TimeInForce || (exports.TimeInForce = TimeInForce = {}));
-var OrderStatus;
+})(TimeInForce || (TimeInForce = {}));
+export var OrderStatus;
 (function (OrderStatus) {
     OrderStatus["PENDING"] = "PENDING";
     OrderStatus["OPEN"] = "OPEN";
     OrderStatus["FILLED"] = "FILLED";
     OrderStatus["CANCELED"] = "CANCELED";
     OrderStatus["UNTRIGGERED"] = "UNTRIGGERED";
-})(OrderStatus || (exports.OrderStatus = OrderStatus = {}));
+})(OrderStatus || (OrderStatus = {}));

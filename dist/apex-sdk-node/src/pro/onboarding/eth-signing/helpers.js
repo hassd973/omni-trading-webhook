@@ -1,50 +1,37 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EIP712_DOMAIN_STRUCT_NO_CONTRACT = exports.EIP712_DOMAIN_STRING_NO_CONTRACT = exports.EIP712_DOMAIN_STRUCT = exports.EIP712_DOMAIN_STRING = exports.PREPEND_HEX = exports.PREPEND_DEC = exports.PREPEND_PERSONAL = void 0;
-exports.isValidSigType = isValidSigType;
-exports.ecRecoverTypedSignature = ecRecoverTypedSignature;
-exports.createTypedSignature = createTypedSignature;
-exports.fixRawSignature = fixRawSignature;
-exports.stripHexPrefix = stripHexPrefix;
-exports.addressesAreEqual = addressesAreEqual;
-exports.hashString = hashString;
-const ethers_1 = require("ethers");
-const web3_1 = __importDefault(require("web3"));
-const main_1 = require("../interface/main");
+import { ethers } from "ethers";
+import Web3 from "web3";
+import { SignatureTypes } from "../interface/main";
 /**
  * Ethereum signed message prefix without message length.
  */
-exports.PREPEND_PERSONAL = "\x19Ethereum Signed Message:\n";
+export const PREPEND_PERSONAL = "\x19Ethereum Signed Message:\n";
 /**
  * Ethereum signed message prefix, 32-byte message, with message length represented as a string.
  */
-exports.PREPEND_DEC = "\x19Ethereum Signed Message:\n32";
+export const PREPEND_DEC = "\x19Ethereum Signed Message:\n32";
 /**
  * Ethereum signed message prefix, 32-byte message, with message length as a one-byte integer.
  */
-exports.PREPEND_HEX = "\x19Ethereum Signed Message:\n\x20";
-exports.EIP712_DOMAIN_STRING = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
-exports.EIP712_DOMAIN_STRUCT = [
+export const PREPEND_HEX = "\x19Ethereum Signed Message:\n\x20";
+export const EIP712_DOMAIN_STRING = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+export const EIP712_DOMAIN_STRUCT = [
     { name: "name", type: "string" },
     { name: "version", type: "string" },
     { name: "chainId", type: "uint256" },
     { name: "verifyingContract", type: "address" },
 ];
-exports.EIP712_DOMAIN_STRING_NO_CONTRACT = "EIP712Domain(string name,string version,uint256 chainId)";
-exports.EIP712_DOMAIN_STRUCT_NO_CONTRACT = [
+export const EIP712_DOMAIN_STRING_NO_CONTRACT = "EIP712Domain(string name,string version,uint256 chainId)";
+export const EIP712_DOMAIN_STRUCT_NO_CONTRACT = [
     { name: "name", type: "string" },
     { name: "version", type: "string" },
     { name: "chainId", type: "uint256" },
 ];
-function isValidSigType(sigType) {
+export function isValidSigType(sigType) {
     switch (sigType) {
-        case main_1.SignatureTypes.NO_PREPEND:
-        case main_1.SignatureTypes.DECIMAL:
-        case main_1.SignatureTypes.HEXADECIMAL:
-        case main_1.SignatureTypes.PERSONAL:
+        case SignatureTypes.NO_PREPEND:
+        case SignatureTypes.DECIMAL:
+        case SignatureTypes.HEXADECIMAL:
+        case SignatureTypes.PERSONAL:
             return true;
         default:
             return false;
@@ -56,32 +43,32 @@ function isValidSigType(sigType) {
  * The string `hashOrMessage` is a hash, unless the signature has type SignatureTypes.PERSONAL, in
  * which case it is the signed message.
  */
-function ecRecoverTypedSignature(hashOrMessage, typedSignature) {
+export function ecRecoverTypedSignature(hashOrMessage, typedSignature) {
     const sigType = parseInt(typedSignature.slice(-2), 16);
     let prependedHash;
     switch (sigType) {
-        case main_1.SignatureTypes.NO_PREPEND:
+        case SignatureTypes.NO_PREPEND:
             prependedHash = hashOrMessage;
             break;
-        case main_1.SignatureTypes.PERSONAL: {
-            const fullMessage = `${exports.PREPEND_PERSONAL}${hashOrMessage.length}${hashOrMessage}`;
-            prependedHash = web3_1.default.utils.soliditySha3({ t: "string", v: fullMessage });
+        case SignatureTypes.PERSONAL: {
+            const fullMessage = `${PREPEND_PERSONAL}${hashOrMessage.length}${hashOrMessage}`;
+            prependedHash = Web3.utils.soliditySha3({ t: "string", v: fullMessage });
             break;
         }
-        case main_1.SignatureTypes.DECIMAL:
-            prependedHash = web3_1.default.utils.soliditySha3({ t: "string", v: exports.PREPEND_DEC }, { t: "bytes32", v: hashOrMessage });
+        case SignatureTypes.DECIMAL:
+            prependedHash = Web3.utils.soliditySha3({ t: "string", v: PREPEND_DEC }, { t: "bytes32", v: hashOrMessage });
             break;
-        case main_1.SignatureTypes.HEXADECIMAL:
-            prependedHash = web3_1.default.utils.soliditySha3({ t: "string", v: exports.PREPEND_HEX }, { t: "bytes32", v: hashOrMessage });
+        case SignatureTypes.HEXADECIMAL:
+            prependedHash = Web3.utils.soliditySha3({ t: "string", v: PREPEND_HEX }, { t: "bytes32", v: hashOrMessage });
             break;
         default:
             throw new Error(`Invalid signature type: ${sigType}`);
     }
     const signature = typedSignature.slice(0, -2);
     // Non-null assertion operator is safe, hash is null only on empty input.
-    return ethers_1.ethers.utils.recoverAddress(ethers_1.ethers.utils.arrayify(prependedHash), signature);
+    return ethers.utils.recoverAddress(ethers.utils.arrayify(prependedHash), signature);
 }
-function createTypedSignature(signature, sigType) {
+export function createTypedSignature(signature, sigType) {
     if (!isValidSigType(sigType)) {
         throw new Error(`Invalid signature type: ${sigType}`);
     }
@@ -90,7 +77,7 @@ function createTypedSignature(signature, sigType) {
 /**
  * Fixes any signatures that don't have a 'v' value of 27 or 28
  */
-function fixRawSignature(signature) {
+export function fixRawSignature(signature) {
     const stripped = stripHexPrefix(signature);
     if (stripped.length !== 130) {
         throw new Error(`Invalid raw signature: ${signature}`);
@@ -110,21 +97,21 @@ function fixRawSignature(signature) {
     }
 }
 // ============ Byte Helpers ============
-function stripHexPrefix(input) {
+export function stripHexPrefix(input) {
     if (input.indexOf("0x") === 0) {
         return input.substr(2);
     }
     return input;
 }
-function addressesAreEqual(addressOne, addressTwo) {
+export function addressesAreEqual(addressOne, addressTwo) {
     if (!addressOne || !addressTwo) {
         return false;
     }
     return (stripHexPrefix(addressOne).toLowerCase() ===
         stripHexPrefix(addressTwo).toLowerCase());
 }
-function hashString(input) {
-    const hash = web3_1.default.utils.soliditySha3({
+export function hashString(input) {
+    const hash = Web3.utils.soliditySha3({
         t: "string",
         v: input,
     });

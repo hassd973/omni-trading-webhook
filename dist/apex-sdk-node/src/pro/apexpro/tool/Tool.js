@@ -1,71 +1,50 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Trace = exports.TraceTool = exports.retry = exports.isNullOrBlank = exports.sleep = exports.SLEEP_MS = void 0;
-exports.getDefaultValue = getDefaultValue;
-exports.generateRandomClientId = generateRandomClientId;
-exports.getPrecision = getPrecision;
-const BasicException_1 = require("../BasicException");
-const lodash_1 = __importDefault(require("lodash"));
-exports.SLEEP_MS = 1000;
+import { BasicException } from '../BasicException';
+import lodash from 'lodash';
+export const SLEEP_MS = 1000;
 /**
  * @param ms
  */
-const sleep = (ms) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield new Promise((resolve) => setTimeout(() => {
+export const sleep = async (ms) => {
+    return await new Promise((resolve) => setTimeout(() => {
         resolve(1);
     }, ms));
-});
-exports.sleep = sleep;
+};
 /**
  * @param value
  */
-const isNullOrBlank = (value) => {
+export const isNullOrBlank = (value) => {
     return !value || value === undefined || value === '' || value.length === 0;
 };
-exports.isNullOrBlank = isNullOrBlank;
 /**
  * @param func
  * @param retryCount
  * @param sleepMS
  */
-const retry = (func_1, ...args_1) => __awaiter(void 0, [func_1, ...args_1], void 0, function* (func, retryCount = 3, sleepMS = exports.SLEEP_MS) {
+export const retry = async (func, retryCount = 3, sleepMS = SLEEP_MS) => {
     let count = retryCount;
     do {
         try {
-            return yield func();
+            return await func();
         }
         catch (e) {
             if (count > 0) {
                 count--;
             }
             if (count <= 0) {
-                throw new BasicException_1.BasicException(e.toString(), e);
+                throw new BasicException(e.toString(), e);
             }
-            exports.Trace.print('retry', e);
-            yield (0, exports.sleep)(sleepMS);
+            Trace.print('retry', e);
+            await sleep(sleepMS);
         }
     } while (true);
-});
-exports.retry = retry;
-function getDefaultValue(obj, path, defaultValue) {
-    return lodash_1.default.get(obj, path, defaultValue) || defaultValue;
+};
+export function getDefaultValue(obj, path, defaultValue) {
+    return lodash.get(obj, path, defaultValue) || defaultValue;
 }
-function generateRandomClientId() {
+export function generateRandomClientId() {
     return Math.random().toString().slice(2).replace(/^0+/, '');
 }
-function getPrecision(num) {
+export function getPrecision(num) {
     const val = Number(num);
     if (isNaN(val)) {
         return 0;
@@ -73,7 +52,7 @@ function getPrecision(num) {
     const strList = String(num).split('.');
     return strList.length === 2 ? strList[1].length : 0;
 }
-class TraceTool {
+export class TraceTool {
     constructor() {
         this.logShow = true;
         this.errorShow = true;
@@ -108,5 +87,4 @@ class TraceTool {
         }
     }
 }
-exports.TraceTool = TraceTool;
-exports.Trace = new TraceTool();
+export const Trace = new TraceTool();

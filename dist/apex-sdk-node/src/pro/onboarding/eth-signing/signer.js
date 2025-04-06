@@ -1,25 +1,10 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Signer = void 0;
-const es6_promisify_1 = require("es6-promisify");
-const ethers_1 = require("ethers");
-const web3_1 = __importDefault(require("web3"));
-const main_1 = require("../interface/main");
-const helpers_1 = require("./helpers");
-const __1 = require("..");
-class Signer {
+import { promisify } from 'es6-promisify';
+import { ethers } from 'ethers';
+import Web3 from 'web3';
+import { SignatureTypes, SigningMethod } from '../interface/main';
+import { createTypedSignature, stripHexPrefix } from './helpers';
+import { web3 } from '..';
+export class Signer {
     // ============ Constructor ============
     constructor(web3) {
         this.web3 = web3;
@@ -29,116 +14,110 @@ class Signer {
      * Returns a signable EIP712 Hash of a struct
      */
     getEIP712Hash(structHash) {
-        const hash = web3_1.default.utils.soliditySha3({ t: 'bytes2', v: '0x1901' }, { t: 'bytes32', v: this.getDomainHash() }, { t: 'bytes32', v: structHash });
+        const hash = Web3.utils.soliditySha3({ t: 'bytes2', v: '0x1901' }, { t: 'bytes32', v: this.getDomainHash() }, { t: 'bytes32', v: structHash });
         // Non-null assertion operator is safe, hash is null only on empty input.
         return hash;
     }
-    ethSignTypedDataInternal(signer, data, signingMethod) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let rpcMethod;
-            let rpcData;
-            let provider = this.web3.currentProvider;
-            if (provider === null) {
-                throw new Error('Cannot sign since Web3 currentProvider is null');
-            }
-            if (typeof provider === 'string') {
-                throw new Error('Cannot sign since Web3 currentProvider is a string');
-            }
-            provider = provider;
-            let sendAsync;
-            switch (signingMethod) {
-                case main_1.SigningMethod.TypedData:
-                    sendAsync = (0, es6_promisify_1.promisify)(provider.send).bind(provider);
-                    rpcMethod = 'eth_signTypedData';
-                    rpcData = data;
-                    break;
-                case main_1.SigningMethod.MetaMask:
-                    sendAsync = (0, es6_promisify_1.promisify)(provider.sendAsync).bind(provider);
-                    rpcMethod = 'eth_signTypedData_v3';
-                    rpcData = JSON.stringify(data);
-                    break;
-                case main_1.SigningMethod.MetaMaskLatest:
-                    sendAsync = (0, es6_promisify_1.promisify)((provider === null || provider === void 0 ? void 0 : provider.sendAsync) || (provider === null || provider === void 0 ? void 0 : provider.send)).bind(provider);
-                    rpcMethod = 'eth_signTypedData_v4';
-                    rpcData = JSON.stringify(data);
-                    break;
-                case main_1.SigningMethod.CoinbaseWallet:
-                    sendAsync = (0, es6_promisify_1.promisify)(provider.sendAsync).bind(provider);
-                    rpcMethod = 'eth_signTypedData_v4';
-                    rpcData = data;
-                    break;
-                default:
-                    throw new Error(`Invalid signing method ${signingMethod}`);
-            }
-            const response = yield sendAsync({
-                method: rpcMethod,
-                params: [signer, rpcData],
-                jsonrpc: '2.0',
-                id: Date.now(),
-            });
-            const res = typeof response == 'string' ? { error: null, result: `${response}`.slice(2, 132) } : response;
-            if (res.error) {
-                throw new Error(res.error.message);
-            }
-            return `0x${(0, helpers_1.stripHexPrefix)(res.result)}0${main_1.SignatureTypes.NO_PREPEND}`;
+    async ethSignTypedDataInternal(signer, data, signingMethod) {
+        let rpcMethod;
+        let rpcData;
+        const provider = this.web3.currentProvider;
+        if (!provider) {
+            throw new Error('Cannot sign since Web3 currentProvider is null');
+        }
+        if (typeof provider === 'string') {
+            throw new Error('Cannot sign since Web3 currentProvider is a string');
+        }
+        let sendAsync;
+        switch (signingMethod) {
+            case SigningMethod.TypedData:
+                sendAsync = promisify(provider.send.bind(provider));
+                rpcMethod = 'eth_signTypedData';
+                rpcData = data;
+                break;
+            case SigningMethod.MetaMask:
+                sendAsync = promisify(provider.sendAsync.bind(provider));
+                rpcMethod = 'eth_signTypedData_v3';
+                rpcData = JSON.stringify(data);
+                break;
+            case SigningMethod.MetaMaskLatest:
+                sendAsync = promisify((provider.sendAsync || provider.send).bind(provider));
+                rpcMethod = 'eth_signTypedData_v4';
+                rpcData = JSON.stringify(data);
+                break;
+            case SigningMethod.CoinbaseWallet:
+                sendAsync = promisify(provider.sendAsync.bind(provider));
+                rpcMethod = 'eth_signTypedData_v4';
+                rpcData = data;
+                break;
+            default:
+                throw new Error(`Invalid signing method ${signingMethod}`);
+        }
+        const response = await sendAsync({
+            method: rpcMethod,
+            params: [signer, rpcData],
+            jsonrpc: '2.0',
+            id: Date.now(),
         });
+        const res = typeof response === 'string' ? { error: null, result: `${response}`.slice(2, 132) } : response;
+        if (res.error) {
+            throw new Error(res.error.message);
+        }
+        return `0x${stripHexPrefix(res.result)}0${SignatureTypes.NO_PREPEND}`;
     }
     /**
      * Sign a message with `personal_sign`.
      */
-    ethSignPersonalInternal(signer, message, env) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let provider = this.web3.currentProvider;
-            if (provider === null) {
-                throw new Error('Cannot sign since Web3 currentProvider is null');
+    async ethSignPersonalInternal(signer, message, env) {
+        const provider = this.web3.currentProvider;
+        if (!provider) {
+            throw new Error('Cannot sign since Web3 currentProvider is null');
+        }
+        if (typeof provider === 'string') {
+            throw new Error('Cannot sign since Web3 currentProvider is a string');
+        }
+        const sendAsync = promisify(provider.sendAsync || provider.send).bind(provider);
+        const rpcMethod = 'personal_sign';
+        let response;
+        try {
+            const msg = web3.utils.utf8ToHex(message);
+            if (web3.eth.accounts.wallet[0]?.privateKey) {
+                const tempRes = await web3.eth.accounts.sign(msg, web3.eth.accounts.wallet[0].privateKey);
+                response = tempRes.signature;
             }
-            if (typeof provider === 'string') {
-                throw new Error('Cannot sign since Web3 currentProvider is a string');
+            else {
+                response = await sendAsync({
+                    method: rpcMethod,
+                    params: [msg, signer],
+                    jsonrpc: '2.0',
+                    id: Date.now(),
+                });
             }
-            provider = provider;
-            const sendAsync = (0, es6_promisify_1.promisify)(provider.sendAsync || provider.send).bind(provider);
-            const rpcMethod = 'personal_sign';
-            let response;
-            try {
-                const msg = __1.web3.utils.utf8ToHex(message);
-                // const r = await web3.eth.personal.sign(msg, web3.eth.accounts.wallet.[0].address, '')
-                if (__1.web3.eth.accounts.wallet[0].privateKey) {
-                    const tempRes = yield __1.web3.eth.accounts.sign(msg, __1.web3.eth.accounts.wallet[0].privateKey);
-                    response = tempRes.signature;
-                }
-                else {
-                    response = yield sendAsync({
-                        method: rpcMethod,
-                        params: [msg, signer],
-                        jsonrpc: '2.0',
-                        id: Date.now(),
-                    });
-                }
-            }
-            catch (e) {
-                throw new Error('Invalid personal_sign');
-            }
-            const signedMsg = response.result ? response.result : response;
-            const verifiedAddress = ethers_1.ethers.utils.verifyMessage(message, signedMsg);
-            const ifValid = verifiedAddress.toLowerCase() === signer.toLowerCase();
-            if (!ifValid) {
-                throw new Error('Invalid signature');
-            }
-            const res = typeof response == 'string' ? { error: null, result: `${response}`.slice(2, 132) } : response;
-            if (res.error) {
-                throw new Error(res.error.message);
-            }
-            const kL2KeyHashProd = '0x3978602b67f89ae820dcc57869dfab215c0a48f7510d95baef4cef262ad38350';
-            const kL2KeyHashTestnet = '0x0be1ca974483d76bfb1b0b934b192f880e1e64c4872bfe471402337a70736366';
-            const kL2KeyHash = env.isProd ? kL2KeyHashProd : kL2KeyHashTestnet;
-            const bytes = ethers_1.ethers.utils.toUtf8Bytes(message);
-            const personalSignMessageHash = ethers_1.ethers.utils.sha256(bytes);
-            if (!ethers_1.ethers.BigNumber.from(personalSignMessageHash).eq(kL2KeyHash)) {
-                throw new Error('personal_sign content hash mismatch');
-            }
-            // Note: Using createTypedSignature() fixes the signature `v` value.
-            return { value: (0, helpers_1.createTypedSignature)(res.result, main_1.SignatureTypes.PERSONAL), l2KeyHash: personalSignMessageHash };
-        });
+        }
+        catch (e) {
+            throw new Error('Invalid personal_sign');
+        }
+        const signedMsg = response.result ? response.result : response;
+        const verifiedAddress = ethers.utils.verifyMessage(message, signedMsg);
+        const ifValid = verifiedAddress.toLowerCase() === signer.toLowerCase();
+        if (!ifValid) {
+            throw new Error('Invalid signature');
+        }
+        const res = typeof response === 'string' ? { error: null, result: `${response}`.slice(2, 132) } : response;
+        if (res.error) {
+            throw new Error(res.error.message);
+        }
+        const kL2KeyHashProd = '0x3978602b67f89ae820dcc57869dfab215c0a48f7510d95baef4cef262ad38350';
+        const kL2KeyHashTestnet = '0x0be1ca974483d76bfb1b0b934b192f880e1e64c4872bfe471402337a70736366';
+        const kL2KeyHash = env && env.isProd ? kL2KeyHashProd : kL2KeyHashTestnet;
+        const bytes = ethers.utils.toUtf8Bytes(message);
+        const personalSignMessageHash = ethers.utils.sha256(bytes);
+        if (!ethers.BigNumber.from(personalSignMessageHash).eq(kL2KeyHash)) {
+            throw new Error('personal_sign content hash mismatch');
+        }
+        return {
+            value: createTypedSignature(res.result, SignatureTypes.PERSONAL),
+            l2KeyHash: personalSignMessageHash,
+        };
     }
 }
-exports.Signer = Signer;

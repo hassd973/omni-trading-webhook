@@ -1,4 +1,3 @@
-"use strict";
 /////////////////////////////////////////////////////////////////////////////////
 // Copyright 2019 StarkWare Industries Ltd.                                    //
 //                                                                             //
@@ -14,51 +13,13 @@
 // See the License for the specific language governing permissions             //
 // and limitations under the License.                                          //
 /////////////////////////////////////////////////////////////////////////////////
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.pedersen = pedersen;
-exports.verify = verify;
-exports.sign = sign;
-exports.getPublicKey = getPublicKey;
 // Modified by dYdX:
 // - convert to TypeScript
 // - throw instead of chai assert
 // - other superficial updates
 // - get library path locally
 // - return dummy proxy if the library fails to load
-const BigIntBuffer = __importStar(require("bigint-buffer"));
+import * as BigIntBuffer from 'bigint-buffer';
 const CRYPTO_CPP_LIB = 'libcrypto_c_exports';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let libcrypto = new Proxy({}, {
@@ -76,7 +37,7 @@ try {
         GetPublicKey: ['int', ['string', 'string']],
     });
 }
-catch (_a) {
+catch {
     // eslint: Intentionally empty.
 }
 /**
@@ -84,7 +45,7 @@ catch (_a) {
  * Full specification of the hash function can be found here:
  *  https://starkware.co/starkex/docs/signatures.html#pedersen-hash-function
  */
-function pedersen(x, y) {
+export function pedersen(x, y) {
     const xBuf = BigIntBuffer.toBufferLE(x, 32);
     const yBuf = BigIntBuffer.toBufferLE(y, 32);
     const resBuf = Buffer.alloc(1024);
@@ -99,7 +60,7 @@ function pedersen(x, y) {
  * Returns true if publicKey signs the message.
  * NOTE: This function assumes that the publicKey is on the curve.
  */
-function verify(starkKey, message, r, s) {
+export function verify(starkKey, message, r, s) {
     const starkKeyBuf = BigIntBuffer.toBufferLE(starkKey, 32);
     const messageBuf = BigIntBuffer.toBufferLE(message, 32);
     const rBuf = BigIntBuffer.toBufferLE(r, 32);
@@ -110,7 +71,7 @@ function verify(starkKey, message, r, s) {
  * Signs message hash z with the provided privateKey, with randomness k.
  * NOTE: k should be a strong cryptographical random, and not repeat.
  */
-function sign(privateKey, message, k) {
+export function sign(privateKey, message, k) {
     const privateKeyBuf = BigIntBuffer.toBufferLE(privateKey, 32);
     const messageBuf = BigIntBuffer.toBufferLE(message, 32);
     const kBuf = BigIntBuffer.toBufferLE(k, 32);
@@ -128,7 +89,7 @@ function sign(privateKey, message, k) {
  * The x coordinate of the public key is also known as the partial public key,
  * and used in StarkEx to identify the user.
  */
-function getPublicKey(privateKey) {
+export function getPublicKey(privateKey) {
     const privateKeyBuf = BigIntBuffer.toBufferLE(privateKey, 32);
     const resBuf = Buffer.alloc(1024);
     const res = libcrypto.GetPublicKey(privateKeyBuf, resBuf);
