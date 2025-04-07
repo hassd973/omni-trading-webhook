@@ -54,19 +54,19 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     signer: string,
     signingMethod: SigningMethod,
     message: M,
-    env?: ENV, // Optional, only used in Personal2
+    env?: ENV,
   ): Promise<string | { value: string; l2KeyHash: string }> {
     const walletAccount: Account | undefined =
-      this.web3.eth.accounts.wallet[signer as any]; // Type assertion for wallet index
+      this.web3.eth.accounts.wallet[signer as any];
 
     switch (signingMethod) {
       case SigningMethod.Hash:
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-        const rawSignature = walletAccount
-          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Returns string
-          : await this.web3.eth.sign(hash, signer); // Returns string
+        const rawSignature: string = walletAccount
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
+          : await this.web3.eth.sign(hash, signer);
 
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
         if (signingMethod === SigningMethod.Hash) {
@@ -86,11 +86,11 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           throw new Error('Wallet account or private key not found for TypedData signing');
         }
         const wallet = new ethers.Wallet(walletAccount.privateKey);
-        const rawSignature = await wallet._signTypedData(
+        const rawSignature: string = await wallet._signTypedData(
           this.getDomainData(),
           { [this.domain]: this.actionStruct },
           message,
-        ); // Returns string
+        );
         return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
       }
 
@@ -100,7 +100,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         const data = {
           types: {
             EIP712Domain: EIP712_DOMAIN_STRUCT_NO_CONTRACT,
-            [this.domain]: [...this.actionStruct], // Avoid mutation
+            [this.domain]: [...this.actionStruct],
           },
           domain: this.getDomainData(),
           primaryType: this.domain,
@@ -132,7 +132,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
   }
 
   public verify(typedSignature: string, expectedSigner: Address, message: M): boolean {
-    if (stripHexPrefix(typedSignature).length !== 130) { // 65*2 = 130 (v,r,s without 0x)
+    if (stripHexPrefix(typedSignature).length !== 130) {
       throw new Error(`Invalid signature length: ${typedSignature}, expected 130 hex chars`);
     }
 
