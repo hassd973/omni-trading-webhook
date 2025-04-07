@@ -1,6 +1,6 @@
 import BN from 'bn.js';
 import { COLLATERAL_ASSET } from '../constants';
-import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers'; // Removed toQuantumsExact
+import { isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber } from '../helpers';
 import { getPedersenHash } from '../lib';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { ConditionalTransferParams, NetworkId, StarkwareConditionalTransfer } from '../types';
@@ -10,7 +10,7 @@ export class SignableConditionalTransfer extends StarkSignable<StarkwareConditio
   static fromTransfer(transfer: ConditionalTransferParams, networkId: NetworkId): SignableConditionalTransfer {
     const nonce = clientIdToNonce(transfer.clientId).toString();
     const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6');
-    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp).toString(); // Already fixed
+    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp).toString(); // Fix confirmed
 
     const condition = transfer.fact;
 
@@ -38,7 +38,7 @@ export class SignableConditionalTransfer extends StarkSignable<StarkwareConditio
     const receiverPublicKeyBn = hexToBn(this.message.receiverPublicKey);
     const quantumsAmountBn = decToBn(this.message.quantumsAmount);
     const nonceBn = decToBn(this.message.nonce);
-    const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours);
+    const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours); // Works with string input
     const conditionBn = hexToBn(this.message.condition);
 
     const part1 = await getPedersenHash(senderPositionIdBn, receiverPositionIdBn);
