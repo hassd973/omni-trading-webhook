@@ -65,8 +65,8 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
         const rawSignature = walletAccount
-          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
-          : await this.web3.eth.sign(hash, signer);
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Returns string
+          : await this.web3.eth.sign(hash, signer); // Returns string
 
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
         if (signingMethod === SigningMethod.Hash) {
@@ -90,7 +90,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           this.getDomainData(),
           { [this.domain]: this.actionStruct },
           message,
-        );
+        ); // Returns string
         return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
       }
 
