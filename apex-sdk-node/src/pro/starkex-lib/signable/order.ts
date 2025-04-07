@@ -23,17 +23,14 @@ import { StarkSignable } from './stark-signable';
 const LIMIT_ORDER_WITH_FEES = 3;
 const ORDER_PADDING_BITS = 17;
 
-/**
- * Wrapper object to convert an order, and hash, sign, and verify its signature.
- */
 export class SignableOrder extends StarkSignable<StarkwareOrder> {
-  static fromOrder = SignableOrder.fromOrderWithClientId; // Alias
+  static fromOrder = SignableOrder.fromOrderWithClientId;
 
   static fromOrderWithClientId(
     order: OrderWithClientId | OrderWithClientIdAndQuoteAmount,
     networkId: NetworkId,
   ): SignableOrder {
-    const nonce = clientIdToNonce(order.clientId).toString(); // Ensure string
+    const nonce = clientIdToNonce(order.clientId).toString();
     return SignableOrder.fromOrderWithNonce(
       {
         ...order,
@@ -45,32 +42,29 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
   }
 
   static fromOrderWithNonce(order: OrderWithNonce | OrderWithNonceAndQuoteAmount, networkId: NetworkId): SignableOrder {
-    const nonce = order.nonce; // Already string from types
+    const nonce = order.nonce;
     const positionId = order.positionId;
     const orderType = StarkwareOrderType.LIMIT_ORDER_WITH_FEES;
     const isBuyingSynthetic = order.side === 'BUY';
 
-    // Use humanSize or amount interchangeably, default to '0'
     const quantumsAmountSynthetic = assetToBaseQuantumNumber(
       order.symbol,
-      order.humanSize || order.amount || '0', // Fallback to '0'
+      order.amount || '0',
       '1e6',
     );
 
-    // Use humanQuoteAmount if provided, else calculate or default
     const quantumsAmountCollateral = assetToBaseQuantumNumber(
       order.symbol,
-      order.humanQuoteAmount || order.quoteAmount || '0', // Fallback to '0'
+      order.quoteAmount || '0',
       '1e6',
     );
 
-    // Default asset IDs if not provided
-    const assetIdSynthetic = order.assetIdSynthetic || '0x123'; // Placeholder
-    const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder
+    const assetIdSynthetic = order.assetIdSynthetic || '0x123';
+    const assetIdCollateral = order.assetIdCollateral || '0x456';
 
     const quantumsAmountFee = assetToBaseQuantumNumber(
       order.symbol,
-      order.limitFee, // Assume string, required in types
+      order.limitFee,
       '1e6',
     );
 
@@ -85,7 +79,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
         quantumsAmountFee,
         assetIdSynthetic,
         assetIdCollateral,
-        assetIdFee: assetIdCollateral, // Fee in collateral asset
+        assetIdFee: assetIdCollateral,
         positionId,
         isBuyingSynthetic,
         expirationEpochHours,
