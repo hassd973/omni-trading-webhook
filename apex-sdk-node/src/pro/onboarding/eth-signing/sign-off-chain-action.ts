@@ -56,31 +56,21 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     message: M,
     env?: ENV,
   ): Promise<string | { value: string; l2KeyHash: string }> {
-    const walletAccount: Account | undefined =
-      this.web3.eth.accounts.wallet[signer as any];
-
+    const walletAccount: Account | undefined = this.web3.eth.accounts.wallet[signer as any];
     switch (signingMethod) {
       case SigningMethod.Hash:
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-        const rawSignature: string = walletAccount
-          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Fix applied
+        const rawSignature = walletAccount
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
           : await this.web3.eth.sign(hash, signer);
-
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
-        if (signingMethod === SigningMethod.Hash) {
-          return hashSig;
-        }
-
+        if (signingMethod === SigningMethod.Hash) return hashSig;
         const unsafeHashSig = createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
-        if (signingMethod === SigningMethod.UnsafeHash) {
-          return unsafeHashSig;
-        }
-
+        if (signingMethod === SigningMethod.UnsafeHash) return unsafeHashSig;
         return this.verify(unsafeHashSig, signer, message) ? unsafeHashSig : hashSig;
       }
-
       case SigningMethod.TypedData: {
         if (!walletAccount?.privateKey) {
           throw new Error('Wallet account or private key not found for TypedData signing');
@@ -93,7 +83,6 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         );
         return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
       }
-
       case SigningMethod.MetaMask:
       case SigningMethod.MetaMaskLatest:
       case SigningMethod.CoinbaseWallet: {
@@ -114,18 +103,15 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
 
         return this.ethSignTypedDataInternal(signer, data, signingMethod);
       }
-
       case SigningMethod.Personal: {
         const messageString = this.getPersonalSignMessage(message);
         return this.ethSignPersonalInternal(signer, messageString);
       }
-
       case SigningMethod.Personal2: {
         if (!env) throw new Error('ENV is required for Personal2 signing method');
         const messageString = this.getPersonalSignMessage(message).replace('chainId', 'envId');
         return this.ethSignPersonalInternal(signer, messageString, env);
       }
-
       default:
         throw new Error(`Invalid signing method: ${signingMethod}`);
     }
