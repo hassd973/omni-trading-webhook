@@ -64,9 +64,9 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-        const rawSignature: string = walletAccount
-          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
-          : await this.web3.eth.sign(hash, signer);
+        const rawSignature = walletAccount
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Extract string
+          : await this.web3.eth.sign(hash, signer); // Returns string
 
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
         if (signingMethod === SigningMethod.Hash) {
@@ -86,7 +86,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           throw new Error('Wallet account or private key not found for TypedData signing');
         }
         const wallet = new ethers.Wallet(walletAccount.privateKey);
-        const rawSignature: string = await wallet._signTypedData(
+        const rawSignature = await wallet._signTypedData(
           this.getDomainData(),
           { [this.domain]: this.actionStruct },
           message,
