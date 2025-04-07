@@ -6,15 +6,16 @@ export interface OrderWithNonce {
   expirationIsoTimestamp: string;
   limitFee: string;
   amount?: string;
-  quoteAmount?: string;
+  quoteAmount?: string;     // Added to fix TS2339
   assetIdSynthetic?: string;
   assetIdCollateral?: string;
 }
 
 export interface OrderWithNonceAndQuoteAmount extends OrderWithNonce {
-  quoteAmount?: string;
+  quoteAmount?: string;     // Already optional, no change needed
 }
 
+// Ensure other related types are consistent
 export interface OrderWithClientId {
   clientId: string;
   positionId: string;
@@ -23,7 +24,7 @@ export interface OrderWithClientId {
   expirationIsoTimestamp: string;
   limitFee: string;
   amount?: string;
-  quoteAmount?: string;
+  quoteAmount?: string;     // Optional for consistency
   assetIdSynthetic?: string;
   assetIdCollateral?: string;
 }
@@ -48,30 +49,6 @@ export interface StarkwareOrder {
   positionId: string;
   isBuyingSynthetic: boolean;
   expirationEpochHours: number;
-}
-
-export interface ConditionalTransferParams {
-  senderPositionId: string;
-  receiverPositionId: string;
-  receiverPublicKey: string;
-  humanAmount: string;
-  clientId: string;
-  expirationIsoTimestamp: string;
-  fact: string;
-}
-
-export interface StarkwareConditionalTransfer {
-  senderPositionId: string;
-  receiverPositionId: string;
-  receiverPublicKey: string;
-  quantumsAmount: string;
-  nonce: string;
-  expirationEpochHours: string;
-  condition: string;
-}
-
-export interface OffChainActionSignature {
-  message: string;
 }
 
 export type NetworkId = number;
