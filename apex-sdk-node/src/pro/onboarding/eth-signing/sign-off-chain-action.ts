@@ -64,10 +64,9 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-        // Line 67 fix: Ensure rawSignature is always a string
         const rawSignature: string = walletAccount
-          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Extract string from object
-          : await this.web3.eth.sign(hash, signer); // Already a string
+          ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature // Fix applied
+          : await this.web3.eth.sign(hash, signer);
 
         const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
         if (signingMethod === SigningMethod.Hash) {
