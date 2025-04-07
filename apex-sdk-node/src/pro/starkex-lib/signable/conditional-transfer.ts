@@ -10,7 +10,7 @@ export class SignableConditionalTransfer extends StarkSignable<StarkwareConditio
   static fromTransfer(transfer: ConditionalTransferParams, networkId: NetworkId): SignableConditionalTransfer {
     const nonce = clientIdToNonce(transfer.clientId).toString();
     const quantumsAmount = assetToBaseQuantumNumber(COLLATERAL_ASSET, transfer.humanAmount, '1e6');
-    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp).toString(); // Fix confirmed
+    const expirationEpochHours = isoTimestampToEpochHours(transfer.expirationIsoTimestamp); // Fixed: Removed .toString()
 
     const condition = transfer.fact;
 
@@ -38,7 +38,7 @@ export class SignableConditionalTransfer extends StarkSignable<StarkwareConditio
     const receiverPublicKeyBn = hexToBn(this.message.receiverPublicKey);
     const quantumsAmountBn = decToBn(this.message.quantumsAmount);
     const nonceBn = decToBn(this.message.nonce);
-    const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours); // Works with string input
+    const expirationEpochHoursBn = intToBn(this.message.expirationEpochHours); // Works with number input
     const conditionBn = hexToBn(this.message.condition);
 
     const part1 = await getPedersenHash(senderPositionIdBn, receiverPositionIdBn);
