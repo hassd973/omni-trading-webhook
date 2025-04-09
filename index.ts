@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import { ApexClient } from './apex-sdk-node/src/pro/index.js';
+import { ApexClient } from './apex-sdk-node/src/pro/ApexClient.js'; // 🔧 Point to actual file
 import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
@@ -11,18 +11,15 @@ const PORT = process.env.PORT || 10000;
 
 app.use(bodyParser.json());
 
-// Type definitions
 interface Position {
   symbol: string;
   size: number;
   side: 'LONG' | 'SHORT';
-  // Add other position properties as needed
 }
 
 interface Balance {
   freeCollateral: string;
   totalAccountValue: string;
-  // Add other balance properties as needed
 }
 
 interface OrderRequest {
@@ -45,7 +42,6 @@ interface OrderParams {
   maxFeeRate: string;
 }
 
-// Load and validate environment variables
 const {
   API_KEY,
   SECRET,
@@ -79,7 +75,6 @@ console.log(`🌐 CHAIN_ID: ${CHAIN_ID ? '✔️' : '❌'}`);
 console.log(`🌍 API_URL: ${API_URL ? '✔️' : '❌ (using default)'}`);
 console.log(`⚙️ NODE_ENV: ${NODE_ENV ? '✔️' : '❌ (defaulting to development)'}\n`);
 
-// Initialize ApexClient
 const apexClient = new ApexClient({
   networkId: parseInt(CHAIN_ID),
   key: API_KEY!,
@@ -96,11 +91,9 @@ const apexClient = new ApexClient({
   registerChainId: parseInt(CHAIN_ID)
 });
 
-// State management
 let latestPositions: Position[] | null = null;
 let latestBalance: Balance | null = null;
 
-// Startup checks
 async function startupChecks() {
   try {
     console.log('🚀 Performing startup checks...');
@@ -120,7 +113,6 @@ async function startupChecks() {
   }
 }
 
-// Auto-refresh state
 async function refreshState() {
   try {
     latestPositions = await apexClient.privateApi.getPositions({ accountId: ACCOUNT_ID! });
@@ -131,7 +123,6 @@ async function refreshState() {
   }
 }
 
-// Initialize application
 startupChecks()
   .then(({ positions, balance }) => {
     latestPositions = positions;
@@ -142,7 +133,6 @@ startupChecks()
     console.error('⚠️ Application may not function properly due to startup errors');
   });
 
-// API Endpoints
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -166,7 +156,6 @@ app.get('/api/balance', (req, res) => {
   res.json({ balance: latestBalance });
 });
 
-// Webhook endpoint with proper typing
 app.post('/webhook', async (req, res) => {
   try {
     const { side, symbol, size, price, reduceOnly }: OrderRequest = req.body;
@@ -216,13 +205,11 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Error handling
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('⚠️ Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${NODE_ENV || 'development'}`);
