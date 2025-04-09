@@ -1,4 +1,4 @@
-import BN from 'bn.js';
+import BN from 'bn.js'; 
 import {
   addOrderExpirationBufferHours,
   isoTimestampToEpochHours,
@@ -55,7 +55,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
 
     const quantumsAmountCollateral = assetToBaseQuantumNumber(
       order.symbol,
-      order.quoteAmount || '0', // Fix: TS2339 with types.ts update
+      'quoteAmount' in order ? order.quoteAmount : '0', // ✅ Fix applied here
       '1e6',
     );
 
