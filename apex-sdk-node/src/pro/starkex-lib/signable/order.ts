@@ -55,7 +55,7 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
 
     const quantumsAmountCollateral = assetToBaseQuantumNumber(
       order.symbol,
-      order.quoteAmount || '0', // Fix: Relies on types.ts update
+      order.quoteAmount || '0', // Fix: TS2339 with types.ts update
       '1e6',
     );
 
