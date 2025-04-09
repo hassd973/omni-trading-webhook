@@ -69,7 +69,9 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         if (signingMethod === SigningMethod.Hash) return hashSig;
         const unsafeHashSig = createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
         if (signingMethod === SigningMethod.UnsafeHash) return unsafeHashSig;
-        return this.verify(unsafeHashSig, signer, message) ? unsafeHashSig : hashSig;
+        // Extract string signature for verify
+        const signatureToVerify = typeof unsafeHashSig === 'string' ? unsafeHashSig : unsafeHashSig.value;
+        return this.verify(signatureToVerify, signer, message) ? unsafeHashSig : hashSig;
       }
       case SigningMethod.TypedData: {
         if (!walletAccount?.privateKey) {
