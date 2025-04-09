@@ -54,21 +54,19 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
     signer: string,
     signingMethod: SigningMethod,
     message: M,
-    env?: ENV,
+    env?: ENV
   ): Promise<string | { value: string; l2KeyHash: string }> {
-    const walletAccount: Account | undefined =
-      this.web3.eth.accounts.wallet[signer as any];
+    const walletAccount = this.web3.eth.accounts.wallet[signer as any] as Account | undefined;
 
     switch (signingMethod) {
       case SigningMethod.Hash:
       case SigningMethod.UnsafeHash:
       case SigningMethod.Compatibility: {
         const hash = this.getHash(message);
-        // Get the signed message (either as a string or an object with the signature field)
         const signedMsg = walletAccount
           ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey)
           : await this.web3.eth.sign(hash, signer);
-        // Ensure we always have a string before using Buffer.from(...).
+
         const signatureHex = typeof signedMsg === 'string' ? signedMsg : signedMsg.signature;
 
         const hashSig = createTypedSignature(signatureHex, SignatureTypes.DECIMAL);
@@ -81,7 +79,6 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           return unsafeHashSig;
         }
 
-        // Verify the signature and return the appropriate one based on verification.
         return this.verify(unsafeHashSig, signer, message) ? unsafeHashSig : hashSig;
       }
 
@@ -89,12 +86,14 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         if (!walletAccount?.privateKey) {
           throw new Error('Wallet account or private key not found for TypedData signing');
         }
+
         const wallet = new ethers.Wallet(walletAccount.privateKey);
         const rawSignature = await wallet._signTypedData(
           this.getDomainData(),
           { [this.domain]: this.actionStruct },
-          message,
+          message
         );
+
         return createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
       }
 
@@ -167,7 +166,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
         ..._.pick(message, _.keys(message).sort()),
       },
       null,
-      2,
+      2
     );
 
     return json
@@ -186,7 +185,7 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
       { type: 'bytes32', value: hashString(EIP712_DOMAIN_STRING_NO_CONTRACT) },
       { type: 'bytes32', value: hashString(this.domain) },
       { type: 'bytes32', value: hashString(this.version) },
-      { type: 'uint256', value: new BigNumber(this.networkId).toFixed(0) },
+      { type: 'uint256', value: new BigNumber(this.networkId).toFixed(0) }
     );
 
     if (!hash) throw new Error('Failed to generate domain hash');
