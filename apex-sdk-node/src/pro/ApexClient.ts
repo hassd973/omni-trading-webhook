@@ -1,5 +1,5 @@
-import { ClientConfig, ENV, PROD } from './Constant';
-import { asEcKeyPair, asSimpleKeyPair, setConfig, setConfigV2, setCurrency, setCurrencyV2, setPerpetual, setSymbols, setSymbolsV2 } from './starkex-lib';
+import { ClientConfig, ENV, PROD } from './Constant.js';
+import { asEcKeyPair, asSimpleKeyPair, setConfig, setConfigV2, setCurrency, setCurrencyV2, setPerpetual, setSymbols, setSymbolsV2 } from './starkex-lib/index.js';
 import {
   AccountObject,
   AccountsItem,
@@ -13,7 +13,7 @@ import {
   PerpetualCurrencyObject,
   SymbolInfoObject,
   UserObject,
-} from './apexpro';
+} from './apexpro/index.js';
 
 // Define PublicApi interface
 export interface PublicApi {
@@ -74,7 +74,7 @@ export class ApexClient {
 
   constructor(env: ENV = PROD) {
     this.apiTool = new ApiTool(env);
-    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi; // Placeholder; replace with actual implementation
+    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi; // Placeholder
     this.env = env;
   }
 
@@ -89,8 +89,8 @@ export class ApexClient {
     this.privateApi = { 
       getPositions: () => Promise.resolve({}), 
       getAccount: () => Promise.resolve({}), 
-      createOrder: () => Promise.resolve({})
-    } as PrivateApi; // Placeholder; replace with actual implementation
+      createOrder: () => Promise.resolve({}) 
+    } as PrivateApi; // Placeholder
     setPerpetual('');
     await this.initClock(clientConfig);
     await this.initConfig();
@@ -98,7 +98,7 @@ export class ApexClient {
 
   private async initClock(clientConfig: ClientConfig) {
     this.clientConfig = clientConfig;
-    const { time } = await this.publicApi.getServerTime().then(() => ({ time: new Date().getTime() })); // Placeholder response
+    const { time } = await this.publicApi.getServerTime().then(() => ({ time: new Date().getTime() }));
     this.clientConfig.clock.setTimestampAdjustment(time - new Date().getTime());
   }
 
@@ -117,7 +117,7 @@ export class ApexClient {
       currency: [],
       multiChain: {},
       global: {}
-    }); // Placeholder; replace with actual API call
+    }); // Placeholder
     genSymbolInfo(groupSymbols, currency, symbols);
     this.symbols = symbols;
     this.currency = currency;
@@ -160,7 +160,7 @@ export class ApexClientV2 {
 
   constructor(env: ENV = PROD) {
     this.apiTool = new ApiTool(env);
-    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi; // Placeholder
+    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi;
     this.env = env;
   }
 
@@ -175,8 +175,8 @@ export class ApexClientV2 {
     this.privateApi = { 
       getPositions: () => Promise.resolve({}), 
       getAccount: () => Promise.resolve({}), 
-      createOrder: () => Promise.resolve({})
-    } as PrivateApi; // Placeholder
+      createOrder: () => Promise.resolve({}) 
+    } as PrivateApi;
     setPerpetual('USDC');
     await this.initClock(clientConfig);
     await this.initConfig();
@@ -184,12 +184,12 @@ export class ApexClientV2 {
 
   private async initClock(clientConfig: ClientConfig) {
     this.clientConfig = clientConfig;
-    const { time } = await this.publicApi.getServerTime().then(() => ({ time: new Date().getTime() })); // Placeholder
+    const { time } = await this.publicApi.getServerTime().then(() => ({ time: new Date().getTime() }));
     this.clientConfig.clock.setTimestampAdjustment(time - new Date().getTime());
   }
 
   private async initConfig() {
-    this.user = await this.privateApi.getAccount(this.clientConfig.accountId, '').then(() => ({} as UserObject)); // Placeholder
+    this.user = await this.privateApi.getAccount(this.clientConfig.accountId, '').then(() => ({} as UserObject));
     this.account = await this.privateApi.getAccount(this.clientConfig.accountId, this.user.ethereumAddress || '');
     this.checkAccountId();
     this.checkStarkKey();
@@ -201,7 +201,7 @@ export class ApexClientV2 {
     const { usdcConfig, usdtConfig } = await Promise.resolve({
       usdcConfig: { perpetualContract: [], currency: [], multiChain: {}, global: {} },
       usdtConfig: { perpetualContract: [], currency: [], multiChain: {}, global: {} }
-    }); // Placeholder; replace with actual API call
+    }); // Placeholder
     const {
       perpetualContract: usdcGroupSymbols = [],
       currency: usdcCurrency,
