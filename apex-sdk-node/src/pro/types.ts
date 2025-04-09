@@ -6,7 +6,7 @@ export interface OrderWithNonce {
   expirationIsoTimestamp: string;
   limitFee: string;
   amount?: string;
-  quoteAmount?: string; // Fix: Added for order.ts
+  quoteAmount?: string; // Fix: TS2339 for order.ts
   assetIdSynthetic?: string;
   assetIdCollateral?: string;
 }
