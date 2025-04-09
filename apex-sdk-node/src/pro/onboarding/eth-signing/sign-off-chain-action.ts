@@ -78,7 +78,6 @@ export abstract class SignOffChainAction<M extends {}> extends Signer {
           return unsafeHashSig;
         }
 
-        // Fix: TS2339 - Ensure return type consistency
         return this.verify(unsafeHashSig, signer, message) ? unsafeHashSig : hashSig;
       }
 
