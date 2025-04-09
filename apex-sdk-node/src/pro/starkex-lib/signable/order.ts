@@ -49,13 +49,13 @@ export class SignableOrder extends StarkSignable<StarkwareOrder> {
 
     const quantumsAmountSynthetic = assetToBaseQuantumNumber(
       order.symbol,
-      order.amount || '0',
+      order.humanSize || order.amount || '0', // Use humanSize first, then amount
       '1e6',
     );
 
     const quantumsAmountCollateral = assetToBaseQuantumNumber(
       order.symbol,
-      order.quoteAmount || '0', // Line 63: Fixed via types.ts
+      'quoteAmount' in order ? (order.quoteAmount || '0') : '0', // Type guard for quoteAmount
       '1e6',
     );
 
