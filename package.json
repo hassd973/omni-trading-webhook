@@ -4,8 +4,6 @@
   "type": "module",
   "scripts": {
     "preinstall": "npm set audit-level high",
-    "postinstall": "npm audit fix --force && npm run patch-sdk",
-    "patch-sdk": "ts-node --skip-project patch-sdk.ts",
     "build": "tsc --skipLibCheck",
     "start": "node dist/index.js",
     "dev": "ts-node index.ts",
