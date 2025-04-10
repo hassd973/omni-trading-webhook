@@ -1,9 +1,8 @@
-// Export core folders
+// Re-export utility modules
 export * from './tool';
 export * from './BasicException';
-export * from './interface';
 
-// Export types (manually added)
+// Re-export all types from the folder
 export * from './types/AccountObject';
 export * from './types/AccountsItem';
 export * from './types/ApiKeyCredentials';
