@@ -1,37 +1,23 @@
 {
   "compilerOptions": {
-    "allowJs": true,
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "ESNext",
     "declaration": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "experimentalDecorators":true,
-    "emitDecoratorMetadata":true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "downlevelIteration": true,
+    "allowJs": true,
     "sourceMap": false,
     "resolveJsonModule": true,
-    "types": [
-      "node",
-      "mocha"
-    ],
-    "baseUrl": "./",
-    "paths": {
-      "*": [
-        "node_modules/*",
-        "typings/*"
-      ]
-    },
     "outDir": "dist"
   },
   "include": [
-    "src/**/*",
+    "src/**/*"
   ],
   "exclude": [
     "mock",
     "node_modules",
     "**/*.spec.ts"
-  ],
+  ]
 }
