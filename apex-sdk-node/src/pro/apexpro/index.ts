@@ -1,8 +1,10 @@
-// Re-export utility modules
 export * from './tool';
 export * from './BasicException';
 
-// Re-export all types from the folder
+// ⛔ DO NOT INCLUDE:
+// export * from './interface';
+
+// ✅ Use only your clean custom exports:
 export * from './types/AccountObject';
 export * from './types/AccountsItem';
 export * from './types/ApiKeyCredentials';
