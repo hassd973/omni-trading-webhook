@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import { ApexClient } from './apex-sdk-node/src/pro/index.js';
+import { ApexClient } from './apex-sdk-node/dist/pro/index.js';
 import { v4 as uuidv4 } from 'uuid';
 dotenv.config();
 const app = express();
