@@ -1,33 +1,29 @@
-# Ignore node_modules and build outputs
+# Node dependencies and build outputs
 node_modules/
 dist/
 build/
 docs/
 
-# OS/system files
+# System/OS junk
 .DS_Store
 Thumbs.db
-
-# Logs
+.cache
 *.log
 
-# IDEs and environments
+# IDE/editor junk
 .idea/
 .vscode/
-*.sublime-workspace
-*.sublime-project
+*.sublime-*
 
-# Test outputs and caches
+# Testing artifacts
+mochawesome-report/
 *.tmp
 *.swp
 *.swo
-*.sass-cache
-.cache
-mochawesome-report/
 
-# Ignore mock data and tests
+# Ignore mock/test files
 src/mock/
 **/*.spec.ts
 
-# Allow all files inside starkex-lib explicitly
+# ⚠️ Explicitly keep all files in starkex-lib (this prevents accidental ignore)
 !apex-sdk-node/src/pro/starkex-lib/**
