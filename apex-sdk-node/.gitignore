@@ -1,112 +1,33 @@
-# 🛠️ Global Git config (you can still set this globally, optional)
-# git config --global core.excludesfile ~/.gitignore
+# Ignore node_modules and build outputs
+node_modules/
+dist/
+build/
+docs/
 
-# 🧼 Untrack files already committed but now ignored
-# git rm --cached <file>
-
-# =========================
-# 📦 Compiled / Binary Files
-# =========================
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
-
-# =========================
-# 🗜️ Compressed Packages
-# =========================
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-
-# =========================
-# 🪵 Logs / Databases
-# =========================
-*.log
-*.sql
-*.sqlite
-
-# =========================
-# 💻 OS / Editor junk
-# =========================
+# OS/system files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-.cache
-.project
-.settings
-.tmproj
-*.esproj
-nbproject
-.VimballRecord
-.netrwhist
 
-# =========================
-# ⚙️ Temp Files
-# =========================
-*.diff
-*.err
-*.orig
-*.rej
-*.swn
-*.swo
-*.swp
-*.vi
-*~
-*.sass-cache
-*.grunt
+# Logs
+*.log
+
+# IDEs and environments
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Test outputs and caches
 *.tmp
+*.swp
+*.swo
+*.sass-cache
+.cache
+mochawesome-report/
 
-# =========================
-# 💻 IDE & Editor folders
-# =========================
-.hg
-.svn
-.CVS
-.idea
-graphics
-graphics-output
-_test
-_archive
-uploads
-tmp
-cache
-artifacts
+# Ignore mock data and tests
+src/mock/
+**/*.spec.ts
 
-# =========================
-# 💼 Node & Package Managers
-# =========================
-node_modules
-bower_components
-package-lock.json
-yarn.lock
-
-# =========================
-# ❌ Ignore ONLY non-critical builds/docs
-# (but KEEP dist/ to allow Render to run)
-# =========================
-build
-docs
-lib
-doc
-
-# =========================
-# ❌ Test + Local-only files
-# =========================
-mochawesome-report
-src/mock/index.local.ts
-/packages
-
-# Optional: ignore examples or debug JS
-example.js
+# Allow all files inside starkex-lib explicitly
+!apex-sdk-node/src/pro/starkex-lib/**
