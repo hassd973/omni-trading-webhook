@@ -15,20 +15,21 @@ export class SignOffChainAction extends Signer {
         this.version = version;
     }
     async sign(signer, signingMethod, message, env) {
-        const walletAccount = this.web3.eth.accounts.wallet[signer]; // Fixed type assertion
+        const walletAccount = this.web3.eth.accounts.wallet[signer];
         switch (signingMethod) {
             case SigningMethod.Hash:
             case SigningMethod.UnsafeHash:
             case SigningMethod.Compatibility: {
                 const hash = this.getHash(message);
-                const rawSignature = walletAccount
-                    ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey).signature
+                const signedMsg = walletAccount
+                    ? this.web3.eth.accounts.sign(hash, walletAccount.privateKey)
                     : await this.web3.eth.sign(hash, signer);
-                const hashSig = createTypedSignature(rawSignature, SignatureTypes.DECIMAL);
+                const signatureHex = typeof signedMsg === 'string' ? signedMsg : signedMsg.signature;
+                const hashSig = createTypedSignature(signatureHex, SignatureTypes.DECIMAL);
                 if (signingMethod === SigningMethod.Hash) {
                     return hashSig;
                 }
-                const unsafeHashSig = createTypedSignature(rawSignature, SignatureTypes.NO_PREPEND);
+                const unsafeHashSig = createTypedSignature(signatureHex, SignatureTypes.NO_PREPEND);
                 if (signingMethod === SigningMethod.UnsafeHash) {
                     return unsafeHashSig;
                 }
@@ -36,7 +37,7 @@ export class SignOffChainAction extends Signer {
             }
             case SigningMethod.TypedData: {
                 if (!walletAccount?.privateKey) {
-                    throw new Error('Wallet account or private key not found');
+                    throw new Error('Wallet account or private key not found for TypedData signing');
                 }
                 const wallet = new ethers.Wallet(walletAccount.privateKey);
                 const rawSignature = await wallet._signTypedData(this.getDomainData(), { [this.domain]: this.actionStruct }, message);
@@ -48,13 +49,12 @@ export class SignOffChainAction extends Signer {
                 const data = {
                     types: {
                         EIP712Domain: EIP712_DOMAIN_STRUCT_NO_CONTRACT,
-                        [this.domain]: [...this.actionStruct], // Create a new array to avoid mutation
+                        [this.domain]: [...this.actionStruct],
                     },
                     domain: this.getDomainData(),
                     primaryType: this.domain,
                     message,
                 };
-                // Type assertion for message with nonce
                 const msg = message;
                 if (msg.nonce) {
                     data.types[this.domain].push({ type: 'string', name: 'nonce' });
@@ -76,8 +76,8 @@ export class SignOffChainAction extends Signer {
         }
     }
     verify(typedSignature, expectedSigner, message) {
-        if (stripHexPrefix(typedSignature).length !== 130) { // 66 * 2 = 132 including '0x'
-            throw new Error(`Unable to verify signature with invalid length: ${typedSignature}`);
+        if (stripHexPrefix(typedSignature).length !== 130) {
+            throw new Error(`Invalid signature length: ${typedSignature}, expected 130 hex chars`);
         }
         const sigType = parseInt(typedSignature.slice(-2), 16);
         let hashOrMessage;

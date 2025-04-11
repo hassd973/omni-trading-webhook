@@ -1,4 +1,4 @@
-import { ISO8601 } from '../interface';
+import { ISO8601 } from '../types/ISO8601'; // ✅
 
 export class Clock {
   private _timestampAdjustment: number;

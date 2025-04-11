@@ -238,15 +238,17 @@ export class PrivateApi {
     const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000) as any;
     const signature: string = await this.getSignature('', () => {
       const orderToSign: OrderWithClientId = {
-        humanSize: `${Number(size)}`,
-        humanPrice: price,
-        limitFee,
-        symbol,
-        side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
-        expirationIsoTimestamp,
-        clientId: clientOrderId,
-        positionId,
-      };
+  clientOrderId,
+  humanSize: `${Number(size)}`,
+  humanPrice: price,
+  limitFee,
+  symbol,
+  side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
+  expirationIsoTimestamp,
+  clientId: clientOrderId,
+  positionId,
+};
+
       const starkOrder = SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
       return starkOrder.sign(this.clientConfig.starkKeyPair);
     });
@@ -289,15 +291,17 @@ export class PrivateApi {
     const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000) as any;
     const signature: string = await this.getSignature('', () => {
       const orderToSign: OrderWithClientId = {
-        humanSize: `${Number(size)}`,
-        humanPrice: price,
-        limitFee,
-        symbol,
-        side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
-        expirationIsoTimestamp,
-        clientId: clientOrderId,
-        positionId,
-      };
+  clientOrderId,
+  humanSize: `${Number(size)}`,
+  humanPrice: price,
+  limitFee,
+  symbol,
+  side: side === 'BUY' ? OrderSide.BUY : OrderSide.SELL,
+  expirationIsoTimestamp,
+  clientId: clientOrderId,
+  positionId,
+};
+
       const starkOrder = SignableOrder.fromOrder(orderToSign, this.clientConfig.networkId);
       return starkOrder.sign(this.clientConfig.starkKeyPair);
     });

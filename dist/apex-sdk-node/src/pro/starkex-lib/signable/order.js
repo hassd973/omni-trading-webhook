@@ -1,6 +1,5 @@
 import BN from 'bn.js';
-import { addOrderExpirationBufferHours, isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber, // Replacement for missing functions
- } from '../helpers';
+import { addOrderExpirationBufferHours, isoTimestampToEpochHours, clientIdToNonce, assetToBaseQuantumNumber, } from '../helpers';
 import { getPedersenHash } from '../lib';
 import { decToBn, hexToBn, intToBn } from '../lib/util';
 import { StarkwareOrderType, } from '../types';
@@ -9,13 +8,9 @@ import { getCacheablePedersenHash } from './hashes';
 import { StarkSignable } from './stark-signable';
 const LIMIT_ORDER_WITH_FEES = 3;
 const ORDER_PADDING_BITS = 17;
-/**
- * Wrapper object to convert an order, and hash, sign, and verify its signature.
- */
 export class SignableOrder extends StarkSignable {
     static fromOrderWithClientId(order, networkId) {
-        // Make the nonce by hashing the client-provided ID.
-        const nonce = clientIdToNonce(order.clientId).toString(); // Convert to string
+        const nonce = clientIdToNonce(order.clientId).toString();
         return SignableOrder.fromOrderWithNonce({
             ...order,
             clientId: undefined,
@@ -25,21 +20,14 @@ export class SignableOrder extends StarkSignable {
     static fromOrderWithNonce(order, networkId) {
         const nonce = order.nonce;
         const positionId = order.positionId;
-        // Within the Starkware system, there is currently only one order type.
         const orderType = StarkwareOrderType.LIMIT_ORDER_WITH_FEES;
-        // Custom implementation to replace getStarkwareAmounts
         const isBuyingSynthetic = order.side === 'BUY';
-        const quantumsAmountSynthetic = assetToBaseQuantumNumber(order.symbol, // Assuming symbol is the asset
-        order.amount, // Assuming amount is provided
+        const quantumsAmountSynthetic = assetToBaseQuantumNumber(order.symbol, order.amount || '0', '1e6');
+        const quantumsAmountCollateral = assetToBaseQuantumNumber(order.symbol, 'quoteAmount' in order ? order.quoteAmount : '0', // ✅ Fix applied here
         '1e6');
-        const quantumsAmountCollateral = '0'; // Placeholder: adjust based on your logic
-        const assetIdSynthetic = order.assetIdSynthetic || '0x123'; // Placeholder
-        const assetIdCollateral = order.assetIdCollateral || '0x456'; // Placeholder
-        // Custom implementation to replace getStarkwareLimitFeeAmount
-        const quantumsAmountFee = assetToBaseQuantumNumber(order.symbol, // Assuming fee is in same asset
-        order.limitFee, // Assuming limitFee is human-readable
-        '1e6');
-        // Convert to a Unix timestamp (in hours) and add buffer to ensure signature is valid on-chain.
+        const assetIdSynthetic = order.assetIdSynthetic || '0x123';
+        const assetIdCollateral = order.assetIdCollateral || '0x456';
+        const quantumsAmountFee = assetToBaseQuantumNumber(order.symbol, order.limitFee, '1e6');
         const expirationEpochHours = addOrderExpirationBufferHours(isoTimestampToEpochHours(order.expirationIsoTimestamp));
         return new SignableOrder({
             orderType,
@@ -56,7 +44,7 @@ export class SignableOrder extends StarkSignable {
         }, networkId);
     }
     async calculateHash() {
-        let message = this.message;
+        const message = this.message;
         const assetIdSyntheticBn = hexToBn(message.assetIdSynthetic);
         const assetIdCollateralBn = hexToBn(message.assetIdCollateral);
         const assetIdFeeBn = hexToBn(message.assetIdFee);
@@ -108,11 +96,11 @@ export class SignableOrder extends StarkSignable {
             .iadd(nonceBn);
         const orderPart2 = new BN(LIMIT_ORDER_WITH_FEES)
             .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-            .iadd(positionIdBn) // Repeat (1/3).
+            .iadd(positionIdBn)
             .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-            .iadd(positionIdBn) // Repeat (2/3).
+            .iadd(positionIdBn)
             .iushln(ORDER_FIELD_BIT_LENGTHS.positionId)
-            .iadd(positionIdBn) // Repeat (3/3).
+            .iadd(positionIdBn)
             .iushln(ORDER_FIELD_BIT_LENGTHS.expirationEpochHours)
             .iadd(expirationEpochHours)
             .iushln(ORDER_PADDING_BITS);
@@ -124,4 +112,4 @@ export class SignableOrder extends StarkSignable {
         return this.message;
     }
 }
-SignableOrder.fromOrder = SignableOrder.fromOrderWithClientId; // Alias.
+SignableOrder.fromOrder = SignableOrder.fromOrderWithClientId;
