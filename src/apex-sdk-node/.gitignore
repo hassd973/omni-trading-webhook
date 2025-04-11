@@ -1,0 +1,29 @@
+# Node dependencies and build outputs
+node_modules/
+dist/
+build/
+docs/
+
+# System/OS junk
+.DS_Store
+Thumbs.db
+.cache
+*.log
+
+# IDE/editor junk
+.idea/
+.vscode/
+*.sublime-*
+
+# Testing artifacts
+mochawesome-report/
+*.tmp
+*.swp
+*.swo
+
+# Ignore mock/test files
+src/mock/
+**/*.spec.ts
+
+# ⚠️ Explicitly keep all files in starkex-lib (this prevents accidental ignore)
+!apex-sdk-node/src/pro/starkex-lib/**
