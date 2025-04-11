@@ -163,6 +163,7 @@ export class PrivateApi {
         const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
         const signature = await this.getSignature('', () => {
             const orderToSign = {
+                clientOrderId,
                 humanSize: `${Number(size)}`,
                 humanPrice: price,
                 limitFee,
@@ -199,6 +200,7 @@ export class PrivateApi {
         const expirationIsoTimestamp = (Date.now() + 30 * 24 * 60 * 60 * 1000);
         const signature = await this.getSignature('', () => {
             const orderToSign = {
+                clientOrderId,
                 humanSize: `${Number(size)}`,
                 humanPrice: price,
                 limitFee,

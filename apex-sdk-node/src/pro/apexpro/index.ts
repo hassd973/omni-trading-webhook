@@ -1,10 +1,7 @@
 export * from './tool';
 export * from './BasicException';
 
-// ⛔ DO NOT INCLUDE:
-// export * from './interface';
-
-// ✅ Use only your clean custom exports:
+// ✅ Clean, complete exports from `types/`
 export * from './types/AccountObject';
 export * from './types/AccountsItem';
 export * from './types/ApiKeyCredentials';
@@ -30,3 +27,4 @@ export * from './types/GetHistoryFundingOptions';
 export * from './types/HistoryFundingObject';
 export * from './types/KlineObject';
 export * from './types/TickerObject';
+

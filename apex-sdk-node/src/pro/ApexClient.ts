@@ -39,7 +39,7 @@ export interface PrivateApi {
 const genSymbolInfo = (groupSymbols: PerpetualContractObject[], currency: CurrencyObject[], symbols: { [key: string]: SymbolInfoObject }) => {
   if (groupSymbols.length) {
     groupSymbols.forEach((obj: PerpetualContractObject, idx: number) => {
-      const symbolInfo: SymbolInfoObject = { ...obj };
+      const symbolInfo: SymbolInfoObject = { ...obj, info: {} };
       symbolInfo.rankIdx = idx;
       symbolInfo.pricePrecision = getPrecision(obj.tickSize);
       symbolInfo.priceStep = Number(obj.tickSize);
