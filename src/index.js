@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { deriveZkKey } from './deriveZkKey';
+import { deriveZkKey } from './src/deriveZkKey';
 import { createApexClient } from './src/ApexClient';
 dotenv.config();
 const app = express();
