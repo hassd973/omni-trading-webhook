@@ -4,34 +4,20 @@ import Web3 from "web3";
 
 import { Address, SignatureTypes } from "../interface/main";
 
-/**
- * Ethereum signed message prefix without message length.
- */
 export const PREPEND_PERSONAL: string = "\x19Ethereum Signed Message:\n";
-
-/**
- * Ethereum signed message prefix, 32-byte message, with message length represented as a string.
- */
 export const PREPEND_DEC: string = "\x19Ethereum Signed Message:\n32";
-
-/**
- * Ethereum signed message prefix, 32-byte message, with message length as a one-byte integer.
- */
 export const PREPEND_HEX: string = "\x19Ethereum Signed Message:\n\x20";
 
 export const EIP712_DOMAIN_STRING: string =
   "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
-
 export const EIP712_DOMAIN_STRUCT = [
   { name: "name", type: "string" },
   { name: "version", type: "string" },
   { name: "chainId", type: "uint256" },
   { name: "verifyingContract", type: "address" },
 ];
-
 export const EIP712_DOMAIN_STRING_NO_CONTRACT: string =
   "EIP712Domain(string name,string version,uint256 chainId)";
-
 export const EIP712_DOMAIN_STRUCT_NO_CONTRACT = [
   { name: "name", type: "string" },
   { name: "version", type: "string" },
@@ -50,15 +36,11 @@ export function isValidSigType(sigType: number): boolean {
   }
 }
 
-/**
- * Recover the address used to sign a given hash or message.
- */
 export function ecRecoverTypedSignature(
   hashOrMessage: string,
   typedSignature: string
 ): Address {
   const sigType = parseInt(typedSignature.slice(-2), 16);
-
   let prependedHash: string | null;
   switch (sigType) {
     case SignatureTypes.NO_PREPEND:
@@ -84,9 +66,7 @@ export function ecRecoverTypedSignature(
     default:
       throw new Error(`Invalid signature type: ${sigType}`);
   }
-
   const signature = typedSignature.slice(0, -2);
-
   return ethers.utils.recoverAddress(
     ethers.utils.arrayify(prependedHash!),
     signature
@@ -103,19 +83,13 @@ export function createTypedSignature(
   return `${fixRawSignature(signature)}0${sigType}`;
 }
 
-/**
- * Fixes any signatures that don't have a 'v' value of 27 or 28
- */
 export function fixRawSignature(signature: string): string {
   const stripped = stripHexPrefix(signature);
-
   if (stripped.length !== 130) {
     throw new Error(`Invalid raw signature: ${signature}`);
   }
-
   const rs = stripped.substr(0, 128);
   const v = stripped.substr(128, 2);
-
   switch (v) {
     case "00":
       return `0x${rs}1b`;
@@ -143,7 +117,6 @@ export function addressesAreEqual(
   if (!addressOne || !addressTwo) {
     return false;
   }
-
   return (
     stripHexPrefix(addressOne).toLowerCase() ===
     stripHexPrefix(addressTwo).toLowerCase()
@@ -159,4 +132,20 @@ export function hashString(input: string): string {
     throw new Error(`soliditySha3 input was empty: ${input}`);
   }
   return hash;
+}
+
+export function addOrderExpirationBufferHours(timestamp: number): number {
+  return timestamp + 24 * 3600;
+}
+
+export function isoTimestampToEpochHours(iso: string): number {
+  return Math.floor(new Date(iso).getTime() / 3600000);
+}
+
+export function asEcKeyPair(data: string): string {
+  return data;
+}
+
+export function asSimpleKeyPair(data: string): string {
+  return data;
 }
