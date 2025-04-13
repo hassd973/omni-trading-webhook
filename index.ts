@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { ApexClient } from './apex-sdk-node/src/pro/ApexClient'; // Remove .js
+import { ApexClient } from './apex-sdk-node/src/pro/ApexClient';
 import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
@@ -8,7 +8,7 @@ dotenv.config();
 const app: express.Application = express();
 const PORT: string | number = process.env.PORT || 10000;
 
-app.use(express.json()); // Replace body-parser
+app.use(express.json());
 
 interface Position {
   symbol: string;
@@ -171,7 +171,7 @@ app.get('/api/balance', (req, res) => {
 app.post('/webhook', async (req, res) => {
   try {
     const { side, symbol, size, price, reduceOnly }: OrderRequest = req.body;
-    
+
     if (!symbol || !size) {
       return res.status(400).json({ error: 'Missing required fields: symbol and size' });
     }
