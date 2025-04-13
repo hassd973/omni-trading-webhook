@@ -7,12 +7,10 @@ import { ENV } from '../Constant';
 
 const web3 = new Web3();
 
-
 const createStartKeyAndOnboarding = async (signer: any, env: ENV, token: 'USDC' | 'USDT', rpcUrl: string, version: 'v1' | 'v2' = 'v2') => {
   if(!web3?.currentProvider){
     web3.setProvider(new Web3.providers.HttpProvider(rpcUrl));
   }
-  
 
   const account = signer.address;
   const chainId = env.networkId;
@@ -33,7 +31,7 @@ const createStartKey = async (signer: any, env: ENV, token: 'USDC' | 'USDT', rpc
   if(!web3?.currentProvider){
     web3.setProvider(new Web3.providers.HttpProvider(rpcUrl));
   }
-  
+
   const account = signer.address;
   if (account) {
     const { key } = await genStarkKey(SigningMethod.Personal2, account, env);
@@ -43,7 +41,6 @@ const createStartKey = async (signer: any, env: ENV, token: 'USDC' | 'USDT', rpc
     throw new Error('Invalid Account');
   }
 };
-
 
 const getNonce = async (
   key: KeyPair,
@@ -71,7 +68,6 @@ const onboarding = async (
   env: ENV,
   nonce: string,
   key: KeyPair,
-  //
   options?: { account: string; token?: 'USDC' | 'USDT'; onboardingVersion: 'v1' | 'v2' },
 ) => {
   const status = !!options.account;
@@ -125,7 +121,6 @@ const onboardingAccount = async ({
 }) => {
   const signer = await web3.eth.accounts.wallet.add(privateKey);
   web3.setProvider(new Web3.providers.HttpProvider(rpcUrl));
-
 
   const res = await createStartKeyAndOnboarding(signer, env, token, rpcUrl, version);
   return res;
