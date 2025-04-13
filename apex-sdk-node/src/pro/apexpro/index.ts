@@ -1,7 +1,5 @@
 export * from './tool';
 export * from './BasicException';
-
-// ✅ Clean, complete exports from `types/`
 export * from './types/AccountObject';
 export * from './types/AccountsItem';
 export * from './types/ApiKeyCredentials';
@@ -27,4 +25,6 @@ export * from './types/GetHistoryFundingOptions';
 export * from './types/HistoryFundingObject';
 export * from './types/KlineObject';
 export * from './types/TickerObject';
-
+export class Clock {
+  setTimestampAdjustment(_adjustment: number): void {}
+}
