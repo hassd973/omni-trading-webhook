@@ -1,47 +1,58 @@
-// Existing key pair helpers
-export function asEcKeyPair(privateKey) {
-  return { privateKey };
-}
-
-export function asSimpleKeyPair(key) {
-  return { key };
-}
-
-// Stubbed config functions (to satisfy imports)
-export function setConfig() {
-  // TODO: Implement config logic
-}
-
-export function setConfigV2() {
-  // TODO: Implement config V2 logic
-}
-
-export function setCurrency() {
-  // TODO: Implement currency setup
-}
-
-export function setCurrencyV2() {
-  // TODO: Implement currency V2 setup
-}
-
-export function setPerpetual() {
-  // TODO: Implement perpetual contract setup
-}
-
-export function setSymbols() {
-  // TODO: Implement symbol setup
-}
-
-export function setSymbolsV2() {
-  // TODO: Implement symbol V2 setup
-}
-
-export const KeyPair = {}; // or mock keypair logic if needed
-
-
-exports.KeyPair = class KeyPair {
+class KeyPair {
   constructor(publicKey, privateKey) {
     this.publicKey = publicKey;
     this.privateKey = privateKey;
   }
+}
+
+function setConfig(config) {
+  console.log('Set config:', config);
+}
+
+function setConfigV2(config) {
+  console.log('Set config V2:', config);
+}
+
+function setCurrency(currency) {
+  console.log('Set currency:', currency);
+}
+
+function setCurrencyV2(currency) {
+  console.log('Set currency V2:', currency);
+}
+
+function setPerpetual(perpetual) {
+  console.log('Set perpetual:', perpetual);
+}
+
+function setSymbols(symbols) {
+  console.log('Set symbols:', symbols);
+}
+
+function setSymbolsV2(symbols) {
+  console.log('Set symbols V2:', symbols);
+}
+
+function genSimplifyOnBoardingSignature(data) {
+  return '0x' + Buffer.from(JSON.stringify(data)).toString('hex');
+}
+
+function keyPairFromData(data) {
+  return new KeyPair(
+    '0x' + Buffer.from(data).toString('hex'),
+    data
+  );
+}
+
+module.exports = {
+  setConfig,
+  setConfigV2,
+  setCurrency,
+  setCurrencyV2,
+  setPerpetual,
+  setSymbols,
+  setSymbolsV2,
+  genSimplifyOnBoardingSignature,
+  keyPairFromData,
+  KeyPair
 };
