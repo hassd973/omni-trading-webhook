@@ -1,15 +1,14 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import bodyParser from 'body-parser';
-import { ApexClient } from './apex-sdk-node/src/pro/ApexClient.js'; // 🔧 Point to actual file
+import { ApexClient } from './apex-sdk-node/src/pro/ApexClient'; // Remove .js
 import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 10000;
+const app: express.Application = express();
+const PORT: string | number = process.env.PORT || 10000;
 
-app.use(bodyParser.json());
+app.use(express.json()); // Replace body-parser
 
 interface Position {
   symbol: string;
@@ -42,6 +41,19 @@ interface OrderParams {
   maxFeeRate: string;
 }
 
+interface EnvVars {
+  API_KEY?: string;
+  SECRET?: string;
+  PASSPHRASE?: string;
+  ETH_PRIVATE_KEY?: string;
+  ACCOUNT_ID?: string;
+  OMNI_SEED?: string;
+  L2KEY?: string;
+  CHAIN_ID?: string;
+  API_URL?: string;
+  NODE_ENV?: string;
+}
+
 const {
   API_KEY,
   SECRET,
@@ -53,7 +65,7 @@ const {
   CHAIN_ID = '42161',
   API_URL,
   NODE_ENV
-} = process.env;
+}: EnvVars = process.env;
 
 const requiredVars = ['API_KEY', 'SECRET', 'PASSPHRASE', 'ETH_PRIVATE_KEY', 'ACCOUNT_ID', 'L2KEY'];
 const missingVars = requiredVars.filter(varname => !process.env[varname]);
