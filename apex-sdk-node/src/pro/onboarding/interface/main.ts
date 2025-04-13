@@ -1,12 +1,11 @@
 import Web3 from 'web3';
 import BigNumber from 'bignumber.js';
 
-export type Provider = any; // Flexible typing for Web3 provider
+export type Provider = any;
 export interface Account {
   address: string;
   privateKey: string;
 }
-// ... rest of the file unchanged (enums, interfaces, etc.)
 export type BigNumberable = BigNumber | string | number;
 
 export enum ApexMarket {
@@ -99,18 +98,6 @@ export type Asset = ApexAsset;
 interface ApiStarkwareSigned {
   signature: string;
   expiration: string;
-}
-
-export enum SigningMethod {
-  Compatibility = "Compatibility",
-  UnsafeHash = "UnsafeHash",
-  Hash = "Hash",
-  TypedData = "TypedData",
-  MetaMask = "MetaMask",
-  MetaMaskLatest = "MetaMaskLatest",
-  CoinbaseWallet = "CoinbaseWallet",
-  Personal = "Personal",
-  Personal2 = "Personal2",
 }
 
 export enum SignatureTypes {
