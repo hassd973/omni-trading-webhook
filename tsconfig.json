@@ -9,9 +9,8 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": ".",
-    "allowSyntheticDefaultImports": true,
-    "allowJs": true
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "apex-sdk-node/src/**/*", "index.js"],
+  "include": ["src/**/*", "apex-sdk-node/src/**/*", "index.ts"],
   "exclude": ["node_modules", "dist", "apex-sdk-node/test/**/*"]
 }
