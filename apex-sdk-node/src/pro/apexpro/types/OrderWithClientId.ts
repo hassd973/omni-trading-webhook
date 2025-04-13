@@ -1,11 +1,10 @@
 export interface OrderWithClientId {
-  clientOrderId: string;
-  clientId?: string;
-  humanPrice?: string;
-  humanSize?: string;
-  limitFee?: string;
-  symbol?: string;
-  side?: string;
-  expirationIsoTimestamp?: string;
-  positionId?: string;
+  positionId: string;
+  humanSize: string;
+  limitFee: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  expirationIsoTimestamp: string;
+  clientId: string;
+  humanPrice: string;
 }
