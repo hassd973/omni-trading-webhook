@@ -15,12 +15,12 @@ export class ENV {
   networkId: number;
   isProd: boolean;
   registerChainId: number;
-  key?: string;               // Optional API key
-  secret?: string;            // Optional API secret
-  passphrase?: string;        // Optional API passphrase (fixed: removed erroneous 'k')
-  starkKeyPair?: { publicKey: string; privateKey: string }; // Optional Stark key pair
-  accountId?: string;         // Optional account ID
-  ethPrivateKey?: string;     // Optional Ethereum private key
+  key?: string;
+  secret?: string;
+  passphrase?: string;
+  starkKeyPair?: { publicKey: string; privateKey: string };
+  accountId?: string;
+  ethPrivateKey?: string;
 
   constructor(url: string, networkId: number) {
     this.url = url;
@@ -30,6 +30,5 @@ export class ENV {
   }
 }
 
-export const PROD = new ENV('https://pro.apex.exchange', 1);
-
+export const PROD = new ENV('https://api.pro.apex.exchange', 1);
 export const QA = new ENV('https://qa.pro.apex.exchange', 5);
