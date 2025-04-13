@@ -1,5 +1,5 @@
 import { ClientConfig, ENV, PROD } from './Constant.js';
-import { asEcKeyPair, asSimpleKeyPair, setConfig, setConfigV2, setCurrency, setCurrencyV2, setPerpetual, setSymbols, setSymbolsV2 } from './starkex-lib/index.js';
+import { setPerpetual, setSymbols, setCurrency, setConfig } from './starkex-lib/index.js';
 import {
   AccountObject,
   AccountsItem,
@@ -74,7 +74,7 @@ export class ApexClient {
 
   constructor(env: ENV = PROD) {
     this.apiTool = new ApiTool(env);
-    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi; // Placeholder
+    this.publicApi = { getServerTime: () => Promise.resolve('') } as PublicApi;
     this.env = env;
   }
 
@@ -84,13 +84,17 @@ export class ApexClient {
     clientConfig.networkId = this.env.networkId;
     clientConfig.accountId = accountId;
     clientConfig.apiKeyCredentials = apiKeyCredentials;
-    clientConfig.starkKeyPair = asSimpleKeyPair(asEcKeyPair(starkPrivateKey));
+    const privateKey = typeof starkPrivateKey === 'string' ? starkPrivateKey : starkPrivateKey.privateKey;
+    clientConfig.starkKeyPair = {
+      publicKey: '0x' + Buffer.from(privateKey).toString('hex'),
+      privateKey
+    };
     clientConfig.clock = new Clock();
     this.privateApi = { 
       getPositions: () => Promise.resolve({}), 
       getAccount: () => Promise.resolve({}), 
       createOrder: () => Promise.resolve({}) 
-    } as PrivateApi; // Placeholder
+    } as PrivateApi;
     setPerpetual('');
     await this.initClock(clientConfig);
     await this.initConfig();
@@ -103,7 +107,7 @@ export class ApexClient {
   }
 
   private async initConfig() {
-    this.user = await this.privateApi.getAccount(this.clientConfig.accountId, '').then(() => ({} as UserObject)); // Placeholder
+    this.user = await this.privateApi.getAccount(this.clientConfig.accountId, '').then(() => ({} as UserObject));
     this.account = await this.privateApi.getAccount(this.clientConfig.accountId, this.user.ethereumAddress || '');
     this.checkAccountId();
     this.checkStarkKey();
@@ -117,7 +121,7 @@ export class ApexClient {
       currency: [],
       multiChain: {},
       global: {}
-    }); // Placeholder
+    });
     genSymbolInfo(groupSymbols, currency, symbols);
     this.symbols = symbols;
     this.currency = currency;
@@ -170,7 +174,11 @@ export class ApexClientV2 {
     clientConfig.networkId = this.env.networkId;
     clientConfig.accountId = accountId;
     clientConfig.apiKeyCredentials = apiKeyCredentials;
-    clientConfig.starkKeyPair = asSimpleKeyPair(asEcKeyPair(starkPrivateKey));
+    const privateKey = typeof starkPrivateKey === 'string' ? starkPrivateKey : starkPrivateKey.privateKey;
+    clientConfig.starkKeyPair = {
+      publicKey: '0x' + Buffer.from(privateKey).toString('hex'),
+      privateKey
+    };
     clientConfig.clock = new Clock();
     this.privateApi = { 
       getPositions: () => Promise.resolve({}), 
@@ -201,7 +209,7 @@ export class ApexClientV2 {
     const { usdcConfig, usdtConfig } = await Promise.resolve({
       usdcConfig: { perpetualContract: [], currency: [], multiChain: {}, global: {} },
       usdtConfig: { perpetualContract: [], currency: [], multiChain: {}, global: {} }
-    }); // Placeholder
+    });
     const {
       perpetualContract: usdcGroupSymbols = [],
       currency: usdcCurrency,
@@ -220,9 +228,9 @@ export class ApexClientV2 {
 
     this.symbols = symbols;
     this.currency = { usdc: usdcCurrency, usdt: usdtCurrency };
-    setSymbolsV2(symbols);
-    setCurrencyV2({ usdc: usdcCurrency, usdt: usdtCurrency });
-    setConfigV2({
+    setSymbols(symbols);
+    setCurrency({ usdc: usdcCurrency, usdt: usdtCurrency });
+    setConfig({
       usdc: { multichain: usdcMultichain, global: usdcGlobal, currency: usdcCurrency },
       usdt: { multichain: usdtMultichain, global: usdtGlobal, currency: usdtCurrency },
     });
