@@ -1,40 +1,48 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.hashInWorkerThread = exports.SignableWithdrawal = exports.SignableTransfer = exports.StarkSignable = exports.SignableOrder = exports.SignableOraclePrice = exports.preComputeHashes = exports.SignableConditionalTransfer = void 0;
-exports.genSimplifyOnBoardingSignature = genSimplifyOnBoardingSignature;
-const helpers_1 = require("../helpers");
-const lib_1 = require("../lib");
-var conditional_transfer_1 = require("./conditional-transfer");
-Object.defineProperty(exports, "SignableConditionalTransfer", { enumerable: true, get: function () { return conditional_transfer_1.SignableConditionalTransfer; } });
-var hashes_1 = require("./hashes");
-Object.defineProperty(exports, "preComputeHashes", { enumerable: true, get: function () { return hashes_1.preComputeHashes; } });
-var oracle_price_1 = require("./oracle-price");
-Object.defineProperty(exports, "SignableOraclePrice", { enumerable: true, get: function () { return oracle_price_1.SignableOraclePrice; } });
-var order_1 = require("./order");
-Object.defineProperty(exports, "SignableOrder", { enumerable: true, get: function () { return order_1.SignableOrder; } });
-var stark_signable_1 = require("./stark-signable");
-Object.defineProperty(exports, "StarkSignable", { enumerable: true, get: function () { return stark_signable_1.StarkSignable; } });
-var transfer_1 = require("./transfer");
-Object.defineProperty(exports, "SignableTransfer", { enumerable: true, get: function () { return transfer_1.SignableTransfer; } });
-var withdrawal_1 = require("./withdrawal");
-Object.defineProperty(exports, "SignableWithdrawal", { enumerable: true, get: function () { return withdrawal_1.SignableWithdrawal; } });
-let maybeHashInWorkerThread = (_a, _b) => {
-    throw new Error('Cannot use hashInWorkerThread() since worker_threads is not available');
+// apex-sdk-node/src/pro/starkex-lib/signable/index.js
+const BN = require('bn.js');
+const { asEcKeyPair } = require('../helpers');
+const { sign } = require('../crypto/proxies');
+
+// Temporary helpers until helpers.js provides them
+function asSimpleSignature(signature) {
+  return {
+    r: signature.r.toString(16),
+    s: signature.s.toString(16)
+  };
+}
+
+function serializeSignature(signature) {
+  // Concatenate r and s as 64-char hex (no '0x')
+  return signature.r.padStart(64, '0') + signature.s.padStart(64, '0');
+}
+
+// Stub for hashInWorkerThread
+let hashInWorkerThread = (a, b) => {
+  throw new Error('Cannot use hashInWorkerThread() since worker_threads is not available');
 };
+
 try {
-    /* eslint-disable @typescript-eslint/no-var-requires,global-require */
-    require('worker_threads');
-    // If the worker_threads module is available, update maybeHashInWorkerThread.
-    // eslint-disable-next-line import/extensions
-    maybeHashInWorkerThread = require('./hash-in-worker-thread').hashInWorkerThread;
-    /* eslint-enable @typescript-eslint/no-var-requires,global-require */
+  require('worker_threads');
+  hashInWorkerThread = require('./hash-in-worker-thread').hashInWorkerThread;
+} catch (error) {
+  // Intentionally empty
 }
-catch (error) {
-    // eslint: Intentionally empty.
-}
-exports.hashInWorkerThread = maybeHashInWorkerThread;
-// 简化钱包链接，生成签名
+
+// Generate simplified onboarding signature
 async function genSimplifyOnBoardingSignature(privateKey, apikeyHash) {
-    const ecSignature = await (0, lib_1.sign)((0, helpers_1.asEcKeyPair)(privateKey), apikeyHash);
-    return (0, helpers_1.serializeSignature)((0, helpers_1.asSimpleSignature)(ecSignature));
+  const keyString = typeof privateKey === 'string' ? privateKey : privateKey.privateKey;
+  const ecSignature = await sign(asEcKeyPair(keyString), apikeyHash);
+  return serializeSignature(asSimpleSignature(ecSignature));
 }
+
+module.exports = {
+  SignableConditionalTransfer: require('./conditional-transfer').SignableConditionalTransfer,
+  preComputeHashes: require('./hashes').preComputeHashes,
+  SignableOraclePrice: require('./oracle-price').SignableOraclePrice,
+  SignableOrder: require('./order').SignableOrder,
+  StarkSignable: require('./stark-signable').StarkSignable,
+  SignableTransfer: require('./transfer').SignableTransfer,
+  SignableWithdrawal: require('./withdrawal').SignableWithdrawal,
+  hashInWorkerThread,
+  genSimplifyOnBoardingSignature
+};
