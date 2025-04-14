@@ -1,4 +1,4 @@
-import { addOrderExpirationBufferHours, isoTimestampToEpochHours, SignableOrder } from './starkex-lib';
+import { addOrderExpirationBufferHours, isoTimestampToEpochHours, SignableOrder, OrderSide as StarkOrderSide } from './starkex-lib';
 import cryptojs from 'crypto-js';
 import {
   AccountBalanceObject,
@@ -196,7 +196,7 @@ export class PrivateApi {
         humanSize: size,
         limitFee,
         symbol,
-        side,
+        side: side === 'BUY' ? StarkOrderSide.BUY : StarkOrderSide.SELL,
         expirationIsoTimestamp,
         clientId,
         humanPrice: price,
@@ -247,7 +247,7 @@ export class PrivateApi {
         humanSize: size,
         limitFee,
         symbol,
-        side,
+        side: side === 'BUY' ? StarkOrderSide.BUY : StarkOrderSide.SELL,
         expirationIsoTimestamp,
         clientId,
         humanPrice: price,
