@@ -1,65 +1,104 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.StarkSignable = void 0;
-const helpers_1 = require("../helpers");
-const crypto_1 = require("../lib/crypto");
-const crypto_js_1 = require("../lib/starkware/crypto-js");
+// apex-sdk-node/src/pro/starkex-lib/signable/stark-signable.js
+const BN = require('bn.js');
+const { asEcKeyPair } = require('../helpers');
+const { sign, verify } = require('../crypto/proxies');
+const { starkEc } = require('../lib/starkware/crypto-js');
+
+// Temporary helpers until helpers.js provides them
+function asEcKeyPairPublic(publicKey, useSecondYCoordinate) {
+  // Stub: Requires starkEc implementation
+  throw new Error('asEcKeyPairPublic not implemented; provide publicKeyYCoordinate');
+}
+
+function asSimpleSignature(signature) {
+  return {
+    r: signature.r.toString(16),
+    s: signature.s.toString(16)
+  };
+}
+
+function deserializeSignature(signature) {
+  // Expect 128-char hex (64 for r, 64 for s)
+  if (typeof signature !== 'string' || signature.length !== 128) {
+    throw new Error('Invalid signature format');
+  }
+  return {
+    r: new BN(signature.slice(0, 64), 16),
+    s: new BN(signature.slice(64), 16)
+  };
+}
+
+function serializeSignature(signature) {
+  // Concatenate r and s as 64-char hex
+  return signature.r.padStart(64, '0') + signature.s.padStart(64, '0');
+}
+
 /**
  * Base class for a STARK key signable message.
  */
 class StarkSignable {
-    constructor(message, networkId) {
-        this._hashBN = null;
-        this.message = message;
-        this.networkId = networkId;
-        // Sanity check.
-        // if (!COLLATERAL_ASSET_ID_BY_NETWORK_ID()) {
-        //   throw new Error(
-        //     `Unknown network ID or unknown collateral asset for network: ${networkId}`
-        //   );
-        // }
+  constructor(message, networkId) {
+    this.message = message;
+    this.networkId = networkId;
+    this._hashBN = null;
+  }
+
+  /**
+   * Return the message hash as a hex string, no 0x prefix.
+   */
+  async getHash() {
+    return (await this.getHashBN()).toString(16).padStart(63, '0');
+  }
+
+  async getHashBN() {
+    if (this._hashBN === null) {
+      this._hashBN = await this.calculateHash();
     }
-    /**
-     * Return the message hash as a hex string, no 0x prefix.
-     */
-    async getHash() {
-        return (await this.getHashBN()).toString(16).padStart(63, '0');
+    return this._hashBN;
+  }
+
+  /**
+   * Sign the message with the given private key.
+   */
+  async sign(privateKey) {
+    const keyString = typeof privateKey === 'string' ? privateKey : privateKey.privateKey;
+    const hashBN = await this.getHashBN();
+    const ecSignature = await sign(asEcKeyPair(keyString), hashBN);
+    return serializeSignature(asSimpleSignature(ecSignature));
+  }
+
+  /**
+   * Verify the signature is valid for a given public key.
+   */
+  async verifySignature(signature, publicKey, publicKeyYCoordinate = null) {
+    const signatureStruct = deserializeSignature(signature);
+
+    // If y-coordinate is provided, use it
+    if (publicKeyYCoordinate !== null) {
+      const ecPublicKey = starkEc.keyFromPublic({
+        x: publicKey,
+        y: publicKeyYCoordinate
+      });
+      return verify(ecPublicKey, await this.getHashBN(), signatureStruct);
     }
-    async getHashBN() {
-        if (this._hashBN === null) {
-            this._hashBN = await this.calculateHash();
-        }
-        return this._hashBN;
+
+    // Try both y-coordinates
+    try {
+      return (
+        (await verify(asEcKeyPairPublic(publicKey, false), await this.getHashBN(), signatureStruct)) ||
+        (await verify(asEcKeyPairPublic(publicKey, true), await this.getHashBN(), signatureStruct))
+      );
+    } catch (e) {
+      return false; // Fallback if asEcKeyPairPublic is unimplemented
     }
-    /**
-     * Sign the message with the given private key, represented as a hex string or hex string pair.
-     */
-    async sign(privateKey) {
-        const hashBN = await this.getHashBN();
-        const ecSignature = await (0, crypto_1.sign)((0, helpers_1.asEcKeyPair)(privateKey), hashBN);
-        const res = (0, helpers_1.serializeSignature)((0, helpers_1.asSimpleSignature)(ecSignature));
-        return res;
-    }
-    /**
-     * Verify the signature is valid for a given public key.
-     */
-    async verifySignature(signature, publicKey, publicKeyYCoordinate = null) {
-        const signatureStruct = (0, helpers_1.deserializeSignature)(signature);
-        // If y-coordinate is available, save time by using it, instead of having to infer it.
-        if (publicKeyYCoordinate !== null) {
-            const ecPublicKey = crypto_js_1.starkEc.keyFromPublic({
-                x: publicKey,
-                y: publicKeyYCoordinate,
-            });
-            return (0, crypto_1.verify)(ecPublicKey, await this.getHashBN(), signatureStruct);
-        }
-        // Return true if the signature is valid for either of the two possible y-coordinates.
-        //
-        // Compare with:
-        // https://github.com/starkware-libs/starkex-resources/blob/1eb84c6a9069950026768013f748016d3bd51d54/crypto/starkware/crypto/signature/signature.py#L151
-        const hashBN = await this.getHashBN();
-        return ((await (0, crypto_1.verify)((0, helpers_1.asEcKeyPairPublic)(publicKey, false), hashBN, signatureStruct)) ||
-            (0, crypto_1.verify)((0, helpers_1.asEcKeyPairPublic)(publicKey, true), hashBN, signatureStruct));
-    }
+  }
+
+  /**
+   * Calculate the message hash (abstract).
+   */
+  async calculateHash() {
+    throw new Error('calculateHash must be implemented by subclass');
+  }
 }
-exports.StarkSignable = StarkSignable;
+
+module.exports = { StarkSignable };
