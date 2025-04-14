@@ -6,6 +6,7 @@ const lib = require('./lib');
 const signable = require('./signable');
 const types = require('./types');
 const main = require('./main');
+const conditionalTransfer = require('./signable/conditional-transfer');
 
 module.exports = {
   ...constants,
@@ -15,6 +16,7 @@ module.exports = {
   ...signable,
   ...types,
   ...main,
+  ...conditionalTransfer,
   // Explicit named exports from helpers
   addOrderExpirationBufferHours: helpers.addOrderExpirationBufferHours,
   isoTimestampToEpochHours: helpers.isoTimestampToEpochHours,
@@ -33,5 +35,6 @@ module.exports = {
   keyPairFromData: lib.keyPairFromData,
   KeyPair: lib.KeyPair,
   // Explicit named exports from signable
-  SignableOrder: signable.SignableOrder
+  SignableOrder: signable.SignableOrder,
+  SignableConditionalTransfer: conditionalTransfer.SignableConditionalTransfer
 };
