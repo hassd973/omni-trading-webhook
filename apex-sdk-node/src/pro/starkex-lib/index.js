@@ -1,23 +1,37 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+// apex-sdk-node/src/pro/starkex-lib/index.js
+const constants = require('./constants');
+const helpers = require('./helpers');
+const keys = require('./keys');
+const lib = require('./lib');
+const signable = require('./signable');
+const types = require('./types');
+const main = require('./main');
+
+module.exports = {
+  ...constants,
+  ...helpers,
+  ...keys,
+  ...lib,
+  ...signable,
+  ...types,
+  ...main,
+  // Explicit named exports from helpers
+  addOrderExpirationBufferHours: helpers.addOrderExpirationBufferHours,
+  isoTimestampToEpochHours: helpers.isoTimestampToEpochHours,
+  stripHexPrefix: helpers.stripHexPrefix,
+  asEcKeyPair: helpers.asEcKeyPair,
+  asSimpleKeyPair: helpers.asSimpleKeyPair,
+  // Explicit named exports from lib
+  setConfig: lib.setConfig,
+  setConfigV2: lib.setConfigV2,
+  setCurrency: lib.setCurrency,
+  setCurrencyV2: lib.setCurrencyV2,
+  setPerpetual: lib.setPerpetual,
+  setSymbols: lib.setSymbols,
+  setSymbolsV2: lib.setSymbolsV2,
+  genSimplifyOnBoardingSignature: lib.genSimplifyOnBoardingSignature,
+  keyPairFromData: lib.keyPairFromData,
+  KeyPair: lib.KeyPair,
+  // Explicit named exports from signable
+  SignableOrder: signable.SignableOrder
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./constants"), exports);
-__exportStar(require("./helpers"), exports);
-__exportStar(require("./keys"), exports);
-__exportStar(require("./lib"), exports);
-__exportStar(require("./signable"), exports);
-__exportStar(require("./types"), exports);
-__exportStar(require("./main"), exports);
