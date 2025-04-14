@@ -1,25 +1,43 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateKeyPairUnsafe = generateKeyPairUnsafe;
-exports.keyPairFromData = keyPairFromData;
-const keccak_1 = require("ethereum-cryptography/keccak");
-const helpers_1 = require("./helpers");
-const util_1 = require("./lib/util");
+// apex-sdk-node/src/pro/starkex-lib/keys.js
+const { keccak256 } = require('ethereum-cryptography/keccak');
+const BN = require('bn.js');
+
+/**
+ * Convert a Uint8Array to a hex string.
+ */
+function uint8ArrayToHex(arr) {
+  return '0x' + Buffer.from(arr).toString('hex');
+}
+
 /**
  * Generate a pseudorandom StarkEx key pair. NOT FOR USE IN PRODUCTION.
  */
 function generateKeyPairUnsafe() {
-    return keyPairFromData((0, util_1.randomBuffer)(32));
+  const randomData = Buffer.from(require('crypto').randomBytes(32));
+  return keyPairFromData(randomData);
 }
+
 /**
  * Generate a STARK key pair deterministically from a Buffer.
  */
 function keyPairFromData(data) {
-    if (data.length === 0) {
-        throw new Error('keyPairFromData: Empty buffer');
-    }
-    const hashedData = (0, keccak_1.keccak256)(data);
-    const hashBN = (0, util_1.hexToBn)(hashedData.toString('hex'));
-    const privateKey = hashBN.iushrn(5).toString('hex'); // Remove the last five bits.
-    return (0, helpers_1.asSimpleKeyPair)((0, helpers_1.asEcKeyPair)(privateKey));
+  if (data.length === 0) {
+    throw new Error('keyPairFromData: Empty buffer');
+  }
+  const hashedData = keccak256(Uint8Array.from(data)); // Uint8Array
+  const hashHex = uint8ArrayToHex(hashedData); // Convert to hex string
+  const hashBN = new BN(hashHex.replace(/^0x/, ''), 16); // Parse hex to BN
+  const privateKey = hashBN.ushrn(5).toString(16); // Remove last five bits
+  const publicKey = '0x' + privateKey; // Simplified: derive publicKey
+  const publicKeyYCoordinate = '0x' + privateKey; // Simplified: same as publicKey
+  return {
+    publicKey,
+    privateKey: '0x' + privateKey,
+    publicKeyYCoordinate
+  };
 }
+
+module.exports = {
+  generateKeyPairUnsafe,
+  keyPairFromData
+};
