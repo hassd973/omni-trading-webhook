@@ -7,13 +7,16 @@
 </head>
 <body>
   <h1>🌍🧊👑 ICE KING DASHBOARD</h1>
-  <div id="balance" class="card">Loading balance…</div>
-  <div id="orders" class="card">Loading orders…</div>
-  <div id="fills" class="card">Loading fills / PnL…</div>
+  <div class="container">
+    <div id="balance" class="card">Loading balance…</div>
+    <div id="orders"  class="card">Loading orders…</div>
+    <div id="fills"   class="card">Loading fills / PnL…</div>
+  </div>
   <canvas id="chart" width="600" height="200"></canvas>
 
-  <!-- Chart.js from CDN -->
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Your app logic -->
   <script src="js/app.js"></script>
 </body>
 </html>
