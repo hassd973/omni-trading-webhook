@@ -1,0 +1,14 @@
+{
+  "name": "ice-king-dashboard",
+  "version": "1.0.0",
+  "description": "ICE KING Dashboard with backend API and frontend UI",
+  "scripts": {
+    "start": "node backend/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "apexpro-connector-node": "^0.2.0-alpha.14",
+    "dotenv": "^16.5.0"
+  }
+}
