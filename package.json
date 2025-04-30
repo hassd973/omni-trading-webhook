@@ -2,14 +2,14 @@
   "name": "omni-trading-webhook",
   "version": "1.0.0",
   "type": "module",
+  "packageManager": "yarn@4.5.0",
   "scripts": {
     "preinstall": "npm set audit-level high",
     "build": "tsc --skipLibCheck",
     "start": "node dist/index.js",
-    "dev": "ts-node --esm index.ts",
+    "dev": "ts-node index.ts",
     "prepare": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rm -rf dist"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -31,7 +31,7 @@
     "uuid": "^10.0.0",
     "viem": "^2.21.23",
     "web3": "^4.16.0",
-    "web3-core-helpers": "^1.7.0"
+    "web3-core-helpers": "1.7.0"
   },
   "devDependencies": {
     "@types/big.js": "^6.2.2",
@@ -48,6 +48,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "packageManager": "npm@10.x"
+  }
 }
